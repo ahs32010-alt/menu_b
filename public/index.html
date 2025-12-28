@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>قائمة المطعم</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+    <div class="container">
+        <header id="mainHeader">
+            <div class="header-background" id="headerBackground" style="display: none;">
+                <div class="header-background-overlay"></div>
+                <img id="headerBackgroundImage" src="" alt="Header Background" class="header-bg-img">
+            </div>
+            <div class="header-content-wrapper">
+                <div class="logo-container">
+                    <img id="logo" src="/images/logo.png" alt="شعار المطعم" class="logo" style="display: none;">
+                </div>
+                <h1>قائمة الطعام</h1>
+            </div>
+        </header>
+
+        <div id="menu-container">
+            <!-- سيتم ملء المحتوى ديناميكياً -->
+            <div class="loading">جاري التحميل...</div>
+        </div>
+    </div>
+
+    <!-- نافذة العرض بملء الشاشة -->
+    <div class="fullscreen-modal" id="fullscreenModal">
+        <span class="close-btn">&times;</span>
+        <div class="fullscreen-content">
+            <img id="fullscreenImage" src="" alt="">
+            <div class="fullscreen-info">
+                <h3 id="fullscreenTitle"></h3>
+                <p id="fullscreenDescription"></p>
+                <span class="price" id="fullscreenPrice"></span>
+            </div>
+        </div>
+    </div>
+
+    <script src="/app.js"></script>
+</body>
+</html>
+

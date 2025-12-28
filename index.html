@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>القائــــمة</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="logo-container">
+                <img src="images/logo.png" alt="شعار المطعم" class="logo" onerror="this.style.display='none'">
+            </div>
+            <h1>القائــــمة</h1>
+        </header>
+
+        <!-- الكريسبي والساندويتش -->
+        <section class="menu-section">
+            <h2 class="section-title">الكريسبي والساندويتش</h2>
+            <div class="menu-grid">
+                <!-- 
+                    لإضافة صورة: ضع الصورة في مجلد images/ وغير src إلى "images/اسم_الصورة.jpg"
+                    لتعديل الوصف: غير النص داخل <p>
+                    لتعديل السعر: غير النص داخل <span class="price">
+                -->
+                <div class="menu-item">
+                    <div class="item-image">
+                        <!-- ضع مسار الصورة هنا: images/اسم_الصورة.jpg -->
+                        <img src="images/krispy-chicken.jpg" alt="كريسبي دجاج" onerror="this.src='https://via.placeholder.com/300x200/8B4513/FFFFFF?text=كريسبي+دجاج'">
+                    </div>
+                    <div class="item-info">
+                        <h3>كريسبي دجاج</h3>
+                        <!-- عدل الوصف هنا -->
+                        <p>دجاج مقرمش ومتبل بطعم خاص مع البطاطس المقرمشة</p>
+                        <!-- عدل السعر هنا -->
+                        <span class="price">45 ريال</span>
+                    </div>
+                </div>
+                <div class="menu-item">
+                    <div class="item-image">
+                        <img src="images/chicken-sandwich.jpg" alt="ساندويتش دجاج" onerror="this.src='https://via.placeholder.com/300x200/8B4513/FFFFFF?text=ساندويتش+دجاج'">
+                    </div>
+                    <div class="item-info">
+                        <h3>ساندويتش دجاج</h3>
+                        <p>ساندويتش دجاج مع الخضار والصلصة</p>
+                        <span class="price">35 ريال</span>
+                    </div>
+                </div>
+                <div class="menu-item">
+                    <div class="item-image">
+                        <img src="images/krispy-beef.jpg" alt="كريسبي بيف" onerror="this.src='https://via.placeholder.com/300x200/8B4513/FFFFFF?text=كريسبي+بيف'">
+                    </div>
+                    <div class="item-info">
+                        <h3>كريسبي بيف</h3>
+                        <p>لحم بقري مقرمش ومتبل</p>
+                        <span class="price">55 ريال</span>
+                    </div>
+                </div>
+                <div class="menu-item">
+                    <div class="item-image">
+                        <img src="images/mixed-sandwich.jpg" alt="ساندويتش مشكل" onerror="this.src='https://via.placeholder.com/300x200/8B4513/FFFFFF?text=ساندويتش+مشكل'">
+                    </div>
+                    <div class="item-info">
+                        <h3>ساندويتش مشكل</h3>
+                        <p>مزيج من الدجاج واللحم</p>
+                        <span class="price">50 ريال</span>
+                    </div>
+                </div>
+                <div class="menu-item">
+                    <div class="item-image">
+                        <img src="images/krispy-fish.jpg" alt="كريسبي سمك" onerror="this.src='https://via.placeholder.com/300x200/8B4513/FFFFFF?text=كريسبي+سمك'">
+                    </div>
+                    <div class="item-info">
+                        <h3>كريسبي سمك</h3>
+                        <p>سمك طازج مقرمش</p>
+                        <span class="price">40 ريال</span>
+                    </div>
+                </div>
+                <div class="menu-item">
+                    <div class="item-image">
+                        <img src="images/grilled-chicken-sandwich.jpg" alt="ساندويتش دجاج مشوي" onerror="this.src='https://via.placeholder.com/300x200/8B4513/FFFFFF?text=ساندويتش+دجاج+مشوي'">
+                    </div>
+                    <div class="item-info">
+                        <h3>ساندويتش دجاج مشوي</h3>
+                        <p>دجاج مشوي مع الخضار</p>
+                        <span class="price">38 ريال</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- البشاميل -->
+        <section class="menu-section">
+            <h2 class="section-title">البشاميل</h2>
+            <div class="menu-grid">
+                <div class="menu-item">
+                    <div class="item-image">
+                        <img src="images/chicken-bechamel.jpg" alt="بشاميل دجاج" onerror="this.src='https://via.placeholder.com/300x200/8B4513/FFFFFF?text=بشاميل+دجاج'">
+                    </div>
+                    <div class="item-info">
+                        <h3>بشاميل دجاج</h3>
+                        <p>دجاج مع صلصة البشاميل الكريمية</p>
+                        <span class="price">48 ريال</span>
+                    </div>
+                </div>
+                <div class="menu-item">
+                    <div class="item-image">
+                        <img src="images/beef-bechamel.jpg" alt="بشاميل لحم" onerror="this.src='https://via.placeholder.com/300x200/8B4513/FFFFFF?text=بشاميل+لحم'">
+                    </div>
+                    <div class="item-info">
+                        <h3>بشاميل لحم</h3>
+                        <p>لحم بقري مع صلصة البشاميل</p>
+                        <span class="price">58 ريال</span>
+                    </div>
+                </div>
+                <div class="menu-item">
+                    <div class="item-image">
+                        <img src="images/mixed-bechamel.jpg" alt="بشاميل مشكل" onerror="this.src='https://via.placeholder.com/300x200/8B4513/FFFFFF?text=بشاميل+مشكل'">
+                    </div>
+                    <div class="item-info">
+                        <h3>بشاميل مشكل</h3>
+                        <p>مزيج من الدجاج واللحم مع البشاميل</p>
+                        <span class="price">55 ريال</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- سكت جوعك -->
+        <section class="menu-section">
+            <h2 class="section-title">سكت جوعك</h2>
+            <div class="menu-grid">
+                <div class="menu-item">
+                    <div class="item-image">
+                        <img src="images/full-meal.jpg" alt="وجبة كاملة" onerror="this.src='https://via.placeholder.com/300x200/8B4513/FFFFFF?text=وجبة+كاملة'">
+                    </div>
+                    <div class="item-info">
+                        <h3>وجبة كاملة</h3>
+                        <p>دجاج مع أرز و سلطة</p>
+                        <span class="price">65 ريال</span>
+                    </div>
+                </div>
+                <div class="menu-item">
+                    <div class="item-image">
+                        <img src="images/family-meal.jpg" alt="وجبة عائلية" onerror="this.src='https://via.placeholder.com/300x200/8B4513/FFFFFF?text=وجبة+عائلية'">
+                    </div>
+                    <div class="item-info">
+                        <h3>وجبة عائلية</h3>
+                        <p>وجبة كبيرة للعائلة</p>
+                        <span class="price">120 ريال</span>
+                    </div>
+                </div>
+                <div class="menu-item">
+                    <div class="item-image">
+                        <img src="images/mixed-meal.jpg" alt="وجبة مشكل" onerror="this.src='https://via.placeholder.com/300x200/8B4513/FFFFFF?text=وجبة+مشكل'">
+                    </div>
+                    <div class="item-info">
+                        <h3>وجبة مشكل</h3>
+                        <p>مزيج من الأصناف المختلفة</p>
+                        <span class="price">75 ريال</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- الصوصات -->
+        <section class="menu-section">
+            <h2 class="section-title">الصوصات</h2>
+            <div class="menu-grid">
+                <div class="menu-item">
+                    <div class="item-image">
+                        <img src="images/hot-sauce.jpg" alt="صوص حار" onerror="this.src='https://via.placeholder.com/300x200/8B4513/FFFFFF?text=صوص+حار'">
+                    </div>
+                    <div class="item-info">
+                        <h3>صوص حار</h3>
+                        <p>صوص حار ومتبل</p>
+                        <span class="price">8 ريال</span>
+                    </div>
+                </div>
+                <div class="menu-item">
+                    <div class="item-image">
+                        <img src="images/garlic-sauce.jpg" alt="صوص ثوم" onerror="this.src='https://via.placeholder.com/300x200/8B4513/FFFFFF?text=صوص+ثوم'">
+                    </div>
+                    <div class="item-info">
+                        <h3>صوص ثوم</h3>
+                        <p>صوص ثوم كريمي</p>
+                        <span class="price">8 ريال</span>
+                    </div>
+                </div>
+                <div class="menu-item">
+                    <div class="item-image">
+                        <img src="images/barbecue-sauce.jpg" alt="صوص باربيكيو" onerror="this.src='https://via.placeholder.com/300x200/8B4513/FFFFFF?text=صوص+باربيكيو'">
+                    </div>
+                    <div class="item-info">
+                        <h3>صوص باربيكيو</h3>
+                        <p>صوص باربيكيو حلو</p>
+                        <span class="price">8 ريال</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- المشروبات -->
+        <section class="menu-section">
+            <h2 class="section-title">المشروبات</h2>
+            <div class="menu-grid">
+                <div class="menu-item">
+                    <div class="item-image">
+                        <img src="images/orange-juice.jpg" alt="عصير برتقال" onerror="this.src='https://via.placeholder.com/300x200/8B4513/FFFFFF?text=عصير+برتقال'">
+                    </div>
+                    <div class="item-info">
+                        <h3>عصير برتقال</h3>
+                        <p>عصير برتقال طازج</p>
+                        <span class="price">12 ريال</span>
+                    </div>
+                </div>
+                <div class="menu-item">
+                    <div class="item-image">
+                        <img src="images/lemon-juice.jpg" alt="عصير ليمون" onerror="this.src='https://via.placeholder.com/300x200/8B4513/FFFFFF?text=عصير+ليمون'">
+                    </div>
+                    <div class="item-info">
+                        <h3>عصير ليمون</h3>
+                        <p>عصير ليمون منعش</p>
+                        <span class="price">12 ريال</span>
+                    </div>
+                </div>
+                <div class="menu-item">
+                    <div class="item-image">
+                        <img src="images/soda.jpg" alt="مشروب غازي" onerror="this.src='https://via.placeholder.com/300x200/8B4513/FFFFFF?text=مشروب+غازي'">
+                    </div>
+                    <div class="item-info">
+                        <h3>مشروب غازي</h3>
+                        <p>مشروب غازي بارد</p>
+                        <span class="price">8 ريال</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <!-- نافذة العرض بملء الشاشة -->
+    <div class="fullscreen-modal" id="fullscreenModal">
+        <span class="close-btn">&times;</span>
+        <div class="fullscreen-content">
+            <img id="fullscreenImage" src="" alt="">
+            <div class="fullscreen-info">
+                <h3 id="fullscreenTitle"></h3>
+                <p id="fullscreenDescription"></p>
+                <span class="price" id="fullscreenPrice"></span>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
+

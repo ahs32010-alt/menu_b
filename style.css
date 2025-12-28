@@ -1,0 +1,309 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: linear-gradient(135deg, #FFF8DC 0%, #fee0b1 100%);
+    color: #841535;
+    line-height: 1.6;
+    padding: 20px;
+    min-height: 100vh;
+}
+
+.container {
+    max-width: 1400px;
+    margin: 0 auto;
+}
+
+header {
+    text-align: center;
+    margin-bottom: 50px;
+    padding: 30px 0;
+}
+
+.logo-container {
+    margin-bottom: 20px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.logo {
+    max-width: 200px;
+    max-height: 150px;
+    width: auto;
+    height: auto;
+    object-fit: contain;
+    border-radius: 10px;
+    box-shadow: 0 4px 15px rgba(139, 69, 19, 0.2);
+    transition: transform 0.3s ease;
+}
+
+.logo:hover {
+    transform: scale(1.05);
+}
+
+header h1 {
+    font-size: 3.5em;
+    color: #841535;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+    font-weight: bold;
+}
+
+.menu-section {
+    margin-bottom: 60px;
+    background: rgba(255, 255, 255, 0.7);
+    padding: 40px;
+    border-radius: 20px;
+    box-shadow: 0 8px 20px rgba(139, 69, 19, 0.15);
+}
+
+.section-title {
+    font-size: 2.5em;
+    color: #841535;
+    margin-bottom: 30px;
+    text-align: center;
+    padding-bottom: 15px;
+    border-bottom: 3px solid #FFD700;
+    font-weight: bold;
+}
+
+.menu-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 30px;
+    margin-top: 30px;
+}
+
+.menu-item {
+    background: #FFF8DC;
+    border-radius: 15px;
+    overflow: hidden;
+    box-shadow: 0 4px 15px rgba(139, 69, 19, 0.2);
+    transition: all 0.3s ease;
+    cursor: pointer;
+    border: 2px solid transparent;
+    position: relative;
+}
+
+.menu-item:hover {
+    transform: scale(1.08);
+    box-shadow: 0 8px 25px rgba(139, 69, 19, 0.4);
+    border-color: #841535;
+    z-index: 10;
+}
+
+.item-image {
+    width: 100%;
+    height: 250px;
+    overflow: hidden;
+    background: #841535;
+}
+
+.item-image img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.3s ease;
+}
+
+.menu-item:hover .item-image img {
+    transform: scale(1.1);
+}
+
+.item-info {
+    padding: 20px;
+    text-align: center;
+}
+
+.item-info h3 {
+    font-size: 1.5em;
+    color: #841535;
+    margin-bottom: 10px;
+    font-weight: bold;
+}
+
+.item-info p {
+    color: #841535;
+    margin-bottom: 15px;
+    font-size: 1em;
+}
+
+.price {
+    display: inline-block;
+    background: linear-gradient(135deg, #841535, #841535);
+    color: #FFF8DC;
+    padding: 8px 20px;
+    border-radius: 25px;
+    font-size: 1.2em;
+    font-weight: bold;
+    box-shadow: 0 2px 8px rgba(139, 69, 19, 0.3);
+}
+
+/* نافذة العرض بملء الشاشة */
+.fullscreen-modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.9);
+    animation: fadeIn 0.3s ease;
+}
+
+.fullscreen-modal.active {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+.close-btn {
+    position: absolute;
+    top: 30px;
+    right: 50px;
+    color: #FFF8DC;
+    font-size: 50px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: transform 0.3s ease;
+    z-index: 1001;
+}
+
+.close-btn:hover {
+    transform: scale(1.2);
+    color: #FFD700;
+}
+
+.fullscreen-content {
+    max-width: 90%;
+    max-height: 90%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 30px;
+}
+
+.fullscreen-content img {
+    max-width: 100%;
+    max-height: 70vh;
+    border-radius: 15px;
+    box-shadow: 0 10px 40px rgba(255, 215, 0, 0.3);
+    animation: zoomIn 0.4s ease;
+}
+
+@keyframes zoomIn {
+    from {
+        transform: scale(0.8);
+        opacity: 0;
+    }
+    to {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+.fullscreen-info {
+    text-align: center;
+    color: #FFF8DC;
+    background: rgba(139, 69, 19, 0.8);
+    padding: 30px;
+    border-radius: 15px;
+    max-width: 600px;
+}
+
+.fullscreen-info h3 {
+    font-size: 2.5em;
+    margin-bottom: 15px;
+    color: #FFD700;
+}
+
+.fullscreen-info p {
+    font-size: 1.3em;
+    margin-bottom: 20px;
+}
+
+.fullscreen-info .price {
+    font-size: 1.8em;
+    background: linear-gradient(135deg, #FFD700, #FFA500);
+    color: #841535;
+}
+
+/* تصميم متجاوب للشاشات الصغيرة */
+@media (max-width: 1024px) {
+    .menu-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .logo {
+        max-width: 180px;
+        max-height: 130px;
+    }
+}
+
+@media (max-width: 768px) {
+    header h1 {
+        font-size: 2.5em;
+    }
+    
+    .logo {
+        max-width: 150px;
+        max-height: 110px;
+    }
+    
+    .section-title {
+        font-size: 2em;
+    }
+    
+    .menu-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .menu-section {
+        padding: 25px;
+    }
+    
+    .close-btn {
+        top: 20px;
+        right: 30px;
+        font-size: 40px;
+    }
+    
+    .fullscreen-info h3 {
+        font-size: 2em;
+    }
+}
+
+@media (max-width: 480px) {
+    header h1 {
+        font-size: 2em;
+    }
+    
+    .logo {
+        max-width: 120px;
+        max-height: 90px;
+    }
+    
+    .section-title {
+        font-size: 1.5em;
+    }
+    
+    .item-info h3 {
+        font-size: 1.2em;
+    }
+}
+

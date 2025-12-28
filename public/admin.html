@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>لوحة التحكم - إدارة القائمة</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/style.css">
+    <link rel="stylesheet" href="/admin.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css">
+</head>
+<body>
+    <div class="admin-container">
+        <header class="admin-header">
+            <div class="header-content">
+                <h1>لوحة التحكم - إدارة قائمة المطعم</h1>
+                <a href="/" class="view-site-btn" target="_blank">عرض الموقع</a>
+            </div>
+        </header>
+
+        <div class="admin-content">
+            <!-- تبويبات -->
+            <div class="tabs">
+                <button class="tab-btn active" data-tab="products">
+                    <span>📦</span> المنتجات
+                </button>
+                <button class="tab-btn" data-tab="categories">
+                    <span>📁</span> الأقسام
+                </button>
+                <button class="tab-btn" data-tab="settings">
+                    <span>⚙️</span> الإعدادات
+                </button>
+            </div>
+
+            <!-- قسم المنتجات -->
+            <div id="products-tab" class="tab-content active">
+                <div class="section-header">
+                    <h2>إدارة المنتجات</h2>
+                    <button class="btn btn-primary" onclick="openProductModal()">
+                        <span>➕</span> إضافة منتج جديد
+                    </button>
+                </div>
+
+                <div class="filters">
+                    <select id="categoryFilter" onchange="filterProducts()">
+                        <option value="">جميع الأقسام</option>
+                    </select>
+                    <input type="text" id="searchProducts" placeholder="🔍 بحث في المنتجات..." onkeyup="searchProducts()" style="padding: 10px; border: 2px solid #ddd; border-radius: 5px; margin-right: 10px; flex: 1;">
+                </div>
+
+                <div class="sorting-info" style="background: #e3f2fd; padding: 15px; border-radius: 8px; margin-bottom: 20px; border-right: 4px solid #2196F3;">
+                    <strong style="color: #1976D2;">💡 نصيحة:</strong>
+                    <span style="color: #555;">يمكنك ترتيب المنتجات بالسحب والإفلات. اسحب المنتج من أي مكان وضعه في المكان المطلوب.</span>
+                </div>
+
+                <div id="products-list" class="products-list-sortable">
+                    <div class="loading">جاري التحميل...</div>
+                </div>
+            </div>
+
+            <!-- قسم الأقسام -->
+            <div id="categories-tab" class="tab-content">
+                <div class="section-header">
+                    <h2>إدارة الأقسام</h2>
+                    <button class="btn btn-primary" onclick="openCategoryModal()">
+                        <span>➕</span> إضافة قسم جديد
+                    </button>
+                </div>
+
+                <div id="categories-list" class="categories-list">
+                    <div class="loading">جاري التحميل...</div>
+                </div>
+            </div>
+
+            <!-- قسم الإعدادات -->
+            <div id="settings-tab" class="tab-content">
+                <div class="section-header">
+                    <h2>الإعدادات العامة</h2>
+                </div>
+
+                <div class="settings-form">
+                    <div class="form-group">
+                        <label>شعار المطعم:</label>
+                        <input type="file" id="logoUpload" accept="image/*" onchange="uploadLogo()">
+                        <div id="logoPreview" class="logo-preview"></div>
+                        <small style="color: #666; margin-top: 5px; display: block;">الحجم الموصى به: 200x150 بكسل</small>
+                    </div>
+
+                    <div class="form-group" style="margin-top: 30px;">
+                        <label>صورة الهيدر (Header):</label>
+                        <input type="file" id="headerUpload" accept="image/*" onchange="uploadHeader()">
+                        <div id="headerPreview" class="logo-preview"></div>
+                        <small style="color: #666; margin-top: 5px; display: block;">صورة تظهر في أعلى الصفحة بخلفية بيضاء شفافة</small>
+                    </div>
+
+                    <div class="settings-section">
+                        <h3 style="color: #841535; margin-top: 30px; margin-bottom: 15px; font-size: 1.3em;">استيراد وتصدير القائمة</h3>
+                        <div class="import-export-container">
+                            <div class="export-section">
+                                <h4>تصدير القائمة الكاملة</h4>
+                                <p style="color: #666; margin-bottom: 15px;">قم بتصدير جميع البيانات (الأقسام، المنتجات، الخيارات، الشعار) في ملف واحد</p>
+                                <button class="btn btn-primary" onclick="exportMenu()">
+                                    <span>📥</span> تصدير القائمة
+                                </button>
+                            </div>
+
+                            <div class="import-section">
+                                <h4>استيراد القائمة الكاملة</h4>
+                                <p style="color: #666; margin-bottom: 15px;">قم برفع ملف Excel للقائمة المستوردة (سيتم استبدال جميع البيانات الحالية)</p>
+                                <input type="file" id="importFile" accept=".xlsx,.xls" style="display: none;" onchange="importMenu(event)">
+                                <button class="btn btn-secondary" onclick="document.getElementById('importFile').click()">
+                                    <span>📤</span> استيراد القائمة
+                                </button>
+                                <small style="color: #f44336; display: block; margin-top: 10px; font-weight: 600;">
+                                    ⚠️ تحذير: الاستيراد سيستبدل جميع البيانات الحالية!
+                                </small>
+                                <small style="color: #666; display: block; margin-top: 5px;">
+                                    الصيغ المدعومة: .xlsx, .xls
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- نافذة إضافة/تعديل منتج -->
+    <div id="productModal" class="modal">
+        <div class="modal-content large-modal">
+            <span class="close" onclick="closeProductModal()">&times;</span>
+            <h2 id="productModalTitle">إضافة منتج جديد</h2>
+            <form id="productForm" onsubmit="saveProduct(event)">
+                <input type="hidden" id="productId">
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>القسم *</label>
+                        <select id="productCategory" required>
+                            <option value="">اختر القسم</option>
+                        </select>
+                    </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>ترتيب العرض</label>
+                        <input type="number" id="productOrder" value="1" min="1">
+                    </div>
+                    <div class="form-group">
+                        <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                            <input type="checkbox" id="productVisible" checked style="width: 20px; height: 20px; cursor: pointer;">
+                            <span>إظهار في القائمة</span>
+                        </label>
+                    </div>
+                </div>
+                </div>
+
+                <div class="form-group">
+                    <label>اسم المنتج *</label>
+                    <input type="text" id="productName" required placeholder="مثال: كريسبي دجاج">
+                </div>
+
+                <div class="form-group">
+                    <label>الوصف</label>
+                    <textarea id="productDescription" rows="3" placeholder="وصف المنتج..."></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label>السعر الأساسي (ريال) *</label>
+                    <input type="number" id="productPrice" step="0.01" min="0" required placeholder="0.00">
+                </div>
+
+                <div class="form-group">
+                    <label>صورة المنتج (مربعة)</label>
+                    <input type="file" id="productImage" accept="image/*" onchange="handleImageUpload(event)">
+                    <div id="productImagePreview" class="image-preview"></div>
+                    <div id="imageCropContainer" style="display: none; margin-top: 20px;">
+                        <div id="imageCropArea" style="max-width: 100%; max-height: 400px; margin-bottom: 15px;"></div>
+                        <div style="display: flex; gap: 10px;">
+                            <button type="button" class="btn btn-primary" onclick="cropImage()">✂️ قص الصورة (مربع)</button>
+                            <button type="button" class="btn btn-secondary" onclick="cancelCrop()">❌ إلغاء</button>
+                        </div>
+                        <input type="hidden" id="imageCropData">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>خيارات المنتج (مثل: وجبة، ساندويتش)</label>
+                    <div class="options-header">
+                        <small style="color: #666;">يمكنك إضافة خيارات بسعر منفصل لكل خيار</small>
+                    </div>
+                    <div id="productOptionsList" class="options-list"></div>
+                    <button type="button" class="btn btn-secondary" onclick="addProductOption()" style="margin-top: 10px;">
+                        <span>➕</span> إضافة خيار جديد
+                    </button>
+                </div>
+
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary">
+                        <span>💾</span> حفظ المنتج
+                    </button>
+                    <button type="button" class="btn btn-secondary" onclick="closeProductModal()">إلغاء</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- نافذة إضافة/تعديل قسم -->
+    <div id="categoryModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeCategoryModal()">&times;</span>
+            <h2 id="categoryModalTitle">إضافة قسم جديد</h2>
+            <form id="categoryForm" onsubmit="saveCategory(event)">
+                <input type="hidden" id="categoryId">
+                
+                <div class="form-group">
+                    <label>اسم القسم *</label>
+                    <input type="text" id="categoryName" required placeholder="مثال: الكريسبي والساندويتش">
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>ترتيب العرض</label>
+                        <input type="number" id="categoryOrder" value="1" min="1">
+                    </div>
+
+                    <div class="form-group">
+                        <label>عدد الأعمدة في السطر</label>
+                        <select id="categoryColumns">
+                            <option value="1">عمود واحد</option>
+                            <option value="2">عمودان</option>
+                            <option value="3">ثلاثة أعمدة</option>
+                            <option value="4" selected>أربعة أعمدة</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary">
+                        <span>💾</span> حفظ القسم
+                    </button>
+                    <button type="button" class="btn btn-secondary" onclick="closeCategoryModal()">إلغاء</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
+    <script src="/admin.js"></script>
+</body>
+</html>
