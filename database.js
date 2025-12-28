@@ -48,10 +48,10 @@ async function getSettings() {
 }
 
 // 5. تصدير كل الدوال التي قد يطلبها server.js
-module.exports = { 
-  initDatabase, 
-  getCategories,
-  getProducts,
-  getSettings,
-  sql 
-};
+module.exports = {
+    initDatabase: async () => { return Promise.resolve(); }, // دالة فارغة احتياطية
+    getCategories,
+    getProducts,
+    getSettings,
+    sql
+  };    
