@@ -1,6 +1,22 @@
-const sqlite3 = require('sqlite3').verbose();
-const path = require('path');
-const fs = require('fs');
+// استيراد مكتبة فيرسال الجديدة
+const { sql } = require('@vercel/postgres');
+
+// ملاحظة: فيرسال سيتعرف تلقائياً على DATABASE_URL من ملف .env.local الذي سحبناه
+
+// مثال لكيفية تحويل دالة جلب البيانات:
+async function getCategories() {
+  try {
+    // بدلاً من db.all("SELECT * FROM categories", ...)
+    const { rows } = await sql`SELECT * FROM categories ORDER BY id ASC`;
+    return rows;
+  } catch (error) {
+    console.error('خطأ في جلب البيانات:', error);
+    return [];
+  }
+}
+
+// تصدير الدوال لاستخدامها في باقي المشروع
+module.exports = { getCategories };
 
 const dbPath = path.join(__dirname, 'menu.db');
 
