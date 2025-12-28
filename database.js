@@ -1,26 +1,62 @@
 const { neon } = require('@neondatabase/serverless');
 
-// تأكد أنك تستخدم المتغيرات الصحيحة
-const sql = neon(process.env.DATABASE_URL || process.env.POSTGRES_URL);
+// جلب الرابط من الإعدادات (DATABASE_URL هو الاسم الرسمي في Neon)
+const connectionString = process.env.DATABASE_URL || process.env.POSTGRES_URL;
 
-async function initDatabase() { return Promise.resolve(); }
+if (!connectionString) {
+    console.error("❌ لا يوجد رابط قاعدة بيانات! تأكد من إضافة DATABASE_URL في Vercel");
+}
+
+const sql = neon(connectionString);
+
+// دالة فارغة لضمان توافق الملف مع server.js
+async function initDatabase() {
+    return Promise.resolve();
+}
+
+// --- العمليات على الأقسام (Categories) ---
 
 async function getCategories() {
     try {
         const rows = await sql`SELECT * FROM categories ORDER BY id ASC`;
         return rows;
     } catch (err) {
-        console.error("DB Error:", err);
+        console.error("خطأ في جلب الأقسام:", err.message);
         return [];
     }
 }
+
+async function addCategory({ name, image }) {
+    const rows = await sql`INSERT INTO categories (name, image) VALUES (${name}, ${image}) RETURNING *`;
+    return rows[0];
+}
+
+// --- العمليات على المنتجات (Products) ---
 
 async function getProducts() {
     try {
         const rows = await sql`SELECT *, image as image_path FROM products ORDER BY id ASC`;
         return rows;
-    } catch (err) { return []; }
+    } catch (err) {
+        console.error("خطأ في جلب المنتجات:", err.message);
+        return [];
+    }
 }
+
+async function getProduct(id) {
+    const rows = await sql`SELECT *, image as image_path FROM products WHERE id = ${id}`;
+    return rows[0];
+}
+
+async function addProduct(p) {
+    const rows = await sql`
+        INSERT INTO products (category_id, name, description, price, image, display_order, is_visible) 
+        VALUES (${p.category_id}, ${p.name}, ${p.description}, ${p.price}, ${p.image_path}, ${p.display_order || 1}, ${p.is_visible || 1}) 
+        RETURNING *`;
+    return rows[0];
+}
+
+// --- الإعدادات (Settings) ---
 
 async function getSetting(key) {
     try {
@@ -29,28 +65,29 @@ async function getSetting(key) {
     } catch (err) { return null; }
 }
 
+async function setSetting(key, value) {
+    const rows = await sql`
+        INSERT INTO settings (key, value) VALUES (${key}, ${value}) 
+        ON CONFLICT (key) DO UPDATE SET value = ${value} 
+        RETURNING *`;
+    return rows[0];
+}
+
+// --- تصدير الدوال (تأكد من وجود جميع الأسماء التي يطلبها server.js) ---
 module.exports = {
     initDatabase,
     getCategories,
+    addCategory,
     getProducts,
+    getProduct,
+    addProduct,
     getSetting,
-    addCategory: async (c) => { 
-        return await sql`INSERT INTO categories (name, image) VALUES (${c.name}, ${c.image}) RETURNING *`;
-    },
-    addProduct: async (p) => {
-        return await sql`INSERT INTO products (category_id, name, description, price, image, display_order, is_visible) VALUES (${p.category_id}, ${p.name}, ${p.description}, ${p.price}, ${p.image_path}, ${p.display_order || 1}, ${p.is_visible || 1}) RETURNING *`;
-    },
-    getProduct: async (id) => {
-        const rows = await sql`SELECT *, image as image_path FROM products WHERE id = ${id}`;
-        return rows[0];
-    },
-    setSetting: async (k, v) => {
-        return await sql`INSERT INTO settings (key, v) VALUES (${k}, ${v}) ON CONFLICT (key) DO UPDATE SET value = ${v} RETURNING *`;
-    },
-    updateCategory: async () => {},
-    deleteCategory: async () => {},
-    updateProduct: async () => {},
-    deleteProduct: async () => {},
+    setSetting,
+    // دوال احتياطية لعدم كسر السيرفر
+    updateCategory: async (id, {name, image}) => { return await sql`UPDATE categories SET name=${name}, image=${image} WHERE id=${id} RETURNING *`; },
+    deleteCategory: async (id) => { return await sql`DELETE FROM categories WHERE id=${id} RETURNING *`; },
+    updateProduct: async (id, p) => { return await sql`UPDATE products SET name=${p.name}, price=${p.price} WHERE id=${id} RETURNING *`; },
+    deleteProduct: async (id) => { return await sql`DELETE FROM products WHERE id=${id} RETURNING *`; },
     deleteProductOptions: async () => {},
     addProductOption: async () => {},
     getProductOptions: async () => []
