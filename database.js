@@ -1,7 +1,13 @@
 const { neon } = require('@neondatabase/serverless');
 
-// الاتصال
-const sql = neon(process.env.DATABASE_URL || process.env.POSTGRES_URL);
+// سنحاول تجربة كل الاحتمالات لاسم المتغير
+const connectionString = process.env.DATABASE_URL || process.env.POSTGRES_URL || process.env.POSTGRES_URL_NON_POOLING;
+
+if (!connectionString) {
+    console.error("❌ Error: No database connection string found in Environment Variables!");
+}
+
+const sql = neon(connectionString);
 
 // 1. الأقسام
 async function getCategories() {
