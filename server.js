@@ -298,20 +298,7 @@ app.get('/admin', (req, res) => {
 });
 
 // بدء الخادم
-async function startServer() {
-    try {
-        await db.initDatabase();
-        console.log('✓ تم الاتصال بقاعدة البيانات بنجاح');
-        
-        app.listen(PORT, () => {
-            console.log(`✓ الخادم يعمل على http://localhost:${PORT}`);
-            console.log(`✓ صفحة الأدمن: http://localhost:${PORT}/admin`);
-        });
-    } catch (error) {
-        console.error('✗ خطأ في بدء الخادم:', error);
-        process.exit(1);
-    }
-}
+
 
 startServer();
 
