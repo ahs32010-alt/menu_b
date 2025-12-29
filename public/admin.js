@@ -306,6 +306,12 @@ function displayProducts() {
         const optionsCount = product.options ? product.options.length : 0;
         const displayOrder = product.display_order || (index + 1);
         
+        // التحقق من وجود الصورة في أي من الحقلين (لضمان التوافق)
+        const imgSrc = product.image_path || product.image || '';
+        
+        // إنشاء رابط المعاينة مع منع التخزين المؤقت إذا كان رابطاً خارجياً
+        const finalImgSrc = imgSrc.startsWith('data:') ? imgSrc : (imgSrc ? `${imgSrc}?t=${new Date().getTime()}` : '');
+
         card.innerHTML = `
             <div class="drag-handle" style="position: absolute; top: 5px; left: 5px; cursor: move; color: #841535; font-size: 1.2em; z-index: 10; padding: 3px 6px; background: rgba(255,255,255,0.9); border-radius: 4px; box-shadow: 0 2px 5px rgba(0,0,0,0.1);">
                 ☰
@@ -314,10 +320,11 @@ function displayProducts() {
                 ترتيب: ${displayOrder}
             </div>
             <div class="product-card-image-container">
-                <img src="${product.image_path || 'https://via.placeholder.com/300x300/841535/FFFFFF?text=' + encodeURIComponent(product.name)}" 
+                <img src="${finalImgSrc || 'https://via.placeholder.com/300x300/841535/FFFFFF?text=' + encodeURIComponent(product.name)}" 
                      alt="${product.name}" 
                      class="product-card-image"
-                     onerror="this.src='https://via.placeholder.com/300x300/841535/FFFFFF?text=${encodeURIComponent(product.name)}'">
+                     style="object-fit: cover; width: 100%; height: 200px;"
+                     onerror="this.onerror=null; this.src='https://via.placeholder.com/300x300/841535/FFFFFF?text=خطأ_في_الصورة';">
                 ${optionsCount > 0 ? `<span class="options-badge">${optionsCount} خيار</span>` : ''}
             </div>
             <div class="product-card-info">
@@ -342,6 +349,7 @@ function displayProducts() {
         `;
         container.appendChild(card);
     });
+}
 
     // تهيئة Sortable
     if (typeof Sortable !== 'undefined') {
