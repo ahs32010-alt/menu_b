@@ -306,12 +306,6 @@ function displayProducts() {
         const optionsCount = product.options ? product.options.length : 0;
         const displayOrder = product.display_order || (index + 1);
         
-        // التحقق من وجود الصورة في أي من الحقلين (لضمان التوافق)
-        const imgSrc = product.image_path || product.image || '';
-        
-        // إنشاء رابط المعاينة مع منع التخزين المؤقت إذا كان رابطاً خارجياً
-        const finalImgSrc = imgSrc.startsWith('data:') ? imgSrc : (imgSrc ? `${imgSrc}?t=${new Date().getTime()}` : '');
-
         card.innerHTML = `
             <div class="drag-handle" style="position: absolute; top: 5px; left: 5px; cursor: move; color: #841535; font-size: 1.2em; z-index: 10; padding: 3px 6px; background: rgba(255,255,255,0.9); border-radius: 4px; box-shadow: 0 2px 5px rgba(0,0,0,0.1);">
                 ☰
@@ -320,11 +314,10 @@ function displayProducts() {
                 ترتيب: ${displayOrder}
             </div>
             <div class="product-card-image-container">
-                <img src="${finalImgSrc || 'https://via.placeholder.com/300x300/841535/FFFFFF?text=' + encodeURIComponent(product.name)}" 
+                <img src="${product.image_path || 'https://via.placeholder.com/300x300/841535/FFFFFF?text=' + encodeURIComponent(product.name)}" 
                      alt="${product.name}" 
                      class="product-card-image"
-                     style="object-fit: cover; width: 100%; height: 200px;"
-                     onerror="this.onerror=null; this.src='https://via.placeholder.com/300x300/841535/FFFFFF?text=خطأ_في_الصورة';">
+                     onerror="this.src='https://via.placeholder.com/300x300/841535/FFFFFF?text=${encodeURIComponent(product.name)}'">
                 ${optionsCount > 0 ? `<span class="options-badge">${optionsCount} خيار</span>` : ''}
             </div>
             <div class="product-card-info">
@@ -349,7 +342,6 @@ function displayProducts() {
         `;
         container.appendChild(card);
     });
-}
 
     // تهيئة Sortable
     if (typeof Sortable !== 'undefined') {
@@ -572,40 +564,63 @@ function closeProductModal() {
     currentProductIdForOptions = null;
 }
 
+// حفظ منتج
 async function saveProduct(event) {
     event.preventDefault();
     
+    const formData = new FormData();
     const productId = document.getElementById('productId').value;
-    const base64Image = document.getElementById('imageCropData').value; // النص اللي ولّدته الدالة فوق
-
-    const productData = {
-        category_id: document.getElementById('productCategory').value,
-        name: document.getElementById('productName').value.trim(),
-        description: document.getElementById('productDescription').value.trim(),
-        price: parseFloat(document.getElementById('productPrice').value) || 0,
-        display_order: parseInt(document.getElementById('productOrder').value) || 1,
-        // إذا رفع صورة جديدة نستخدمها، وإلا نترك القديمة
-        image_path: base64Image || (document.querySelector('#productImagePreview img') ? document.querySelector('#productImagePreview img').src : ''),
-        is_visible: 1
-    };
-
+    
+    formData.append('category_id', document.getElementById('productCategory').value);
+    formData.append('name', document.getElementById('productName').value.trim());
+    formData.append('description', document.getElementById('productDescription').value.trim());
+    formData.append('price', document.getElementById('productPrice').value);
+    formData.append('display_order', parseInt(document.getElementById('productOrder').value) || 1);
+    formData.append('is_visible', document.getElementById('productVisible').checked ? 1 : 0);
+    
+    const cropData = document.getElementById('imageCropData').value;
+    if (cropData) {
+        formData.append('image_crop_data', cropData);
+    }
+    
+    const options = getProductOptions();
+    formData.append('options', JSON.stringify(options));
+    
+    const imageFile = document.getElementById('productImage').files[0];
+    if (imageFile) {
+        formData.append('image', imageFile);
+    }
+    
     try {
         const url = productId ? `/api/products/${productId}` : '/api/products';
         const method = productId ? 'PUT' : 'POST';
-
+        
+        showNotification('جاري الحفظ...', 'info');
+        
         const response = await fetch(url, {
             method: method,
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(productData)
+            body: formData
         });
-
+        
         if (response.ok) {
+            const savedProduct = await response.json();
+            currentProductIdForOptions = savedProduct.id;
+            
+            // حفظ الخيارات بعد حفظ المنتج
+            if (options.length > 0) {
+                await saveProductOptionsToDB(savedProduct.id, options);
+            }
+            
             closeProductModal();
             await loadProducts();
-            showNotification('تم حفظ المنتج والصورة بنجاح!', 'success');
+            showNotification(productId ? 'تم تحديث المنتج بنجاح' : 'تم إضافة المنتج بنجاح', 'success');
+        } else {
+            const error = await response.json();
+            showNotification('حدث خطأ: ' + (error.error || 'خطأ غير معروف'), 'error');
         }
     } catch (error) {
-        showNotification('حدث خطأ أثناء الحفظ', 'error');
+        console.error('خطأ في حفظ المنتج:', error);
+        showNotification('حدث خطأ في حفظ المنتج', 'error');
     }
 }
 
