@@ -1,21 +1,18 @@
-// تأكد من وجود هذه الأسطر في أعلى ملف السيرفر لكي يفهم الصور الطويلة
 const express = require('express');
+const path = require('path');
+const multer = require('multer');
+const bodyParser = require('body-parser');
+const db = require('./database');
+
 const app = express();
+const PORT = 3000;
 
-// هذا السطر هو "السر" لكي يقرأ السيرفر الصور المرفوعة من جهازك
-app.use(express.json({ limit: '50mb' })); 
-app.use(express.urlencoded({ limit: '50mb', extended: true }));
-
-// ابحث عن مسار إضافة المنتج وعدله ليكون هكذا
-app.post('/api/products', async (req, res) => {
-    try {
-        const db = require('./database'); // استدعاء ملف الداتابيز
-        const newProduct = await db.addProduct(req.body);
-        res.json(savedProduct);
-    } catch (error) {
-        res.status(500).json({ error: error.message });
-    }
-});
+// Middleware
+app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: true }));
+app.use(express.static('public'));
+app.use('/images', express.static('images'));
+app.use('/uploads', express.static('uploads'));
 
 // إعداد Multer لرفع الملفات
 const storage = multer.diskStorage({
