@@ -48,7 +48,7 @@ async function getSetting(key) {
     try {
         const rows = await sql`SELECT value FROM settings WHERE key = ${key}`;
         return rows.length > 0 ? rows[0].value : null;
-    } catch (err) { return null; }
+    } catch (err) { return null; } 
 }
 
 async function setSetting(key, value) {
