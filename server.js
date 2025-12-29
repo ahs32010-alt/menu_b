@@ -15,28 +15,48 @@ app.use('/images', express.static('images'));
 app.use('/uploads', express.static('uploads'));
 
 // إعداد Multer لرفع الملفات
+const imagesDir = path.join(__dirname, 'images');
+const uploadsDir = path.join(__dirname, 'uploads');
+
+// التأكد من وجود المجلدات
+const fs = require('fs');
+if (!fs.existsSync(imagesDir)) {
+    fs.mkdirSync(imagesDir, { recursive: true });
+}
+if (!fs.existsSync(uploadsDir)) {
+    fs.mkdirSync(uploadsDir, { recursive: true });
+}
+
 const storage = multer.diskStorage({
     destination: function (req, file, cb) {
-        cb(null, 'images/');
+        // استخدام مسار مطلق للتأكد من العمل على السيرفر
+        cb(null, imagesDir);
     },
     filename: function (req, file, cb) {
+        // إنشاء اسم فريد للملف
         const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-        cb(null, uniqueSuffix + path.extname(file.originalname));
+        const ext = path.extname(file.originalname).toLowerCase();
+        cb(null, uniqueSuffix + ext);
     }
 });
 
 const upload = multer({ 
     storage: storage,
-    limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
+    limits: { 
+        fileSize: 10 * 1024 * 1024, // 10MB - زيادة الحجم للسماح بصور أكبر
+        files: 1
+    },
     fileFilter: function (req, file, cb) {
-        const allowedTypes = /jpeg|jpg|png|gif|webp/;
+        // السماح بأنواع الصور الشائعة
+        const allowedTypes = /jpeg|jpg|png|gif|webp|bmp|svg/;
         const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
-        const mimetype = allowedTypes.test(file.mimetype);
+        const mimetype = allowedTypes.test(file.mimetype) || 
+                        file.mimetype.startsWith('image/');
         
         if (mimetype && extname) {
             return cb(null, true);
         } else {
-            cb(new Error('نوع الملف غير مدعوم. يرجى رفع صورة فقط.'));
+            cb(new Error('نوع الملف غير مدعوم. يرجى رفع صورة فقط (JPG, PNG, GIF, WEBP).'));
         }
     }
 });
@@ -102,6 +122,11 @@ app.get('/api/products/:id', async (req, res) => {
 
 app.post('/api/products', upload.single('image'), async (req, res) => {
     try {
+        // معالجة أخطاء multer
+        if (req.fileValidationError) {
+            return res.status(400).json({ error: req.fileValidationError });
+        }
+        
         const productData = {
             category_id: req.body.category_id,
             name: req.body.name,
@@ -151,6 +176,11 @@ app.post('/api/products', upload.single('image'), async (req, res) => {
 
 app.put('/api/products/:id', upload.single('image'), async (req, res) => {
     try {
+        // معالجة أخطاء multer
+        if (req.fileValidationError) {
+            return res.status(400).json({ error: req.fileValidationError });
+        }
+        
         const existingProduct = await db.getProduct(req.params.id);
         if (!existingProduct) {
             return res.status(404).json({ error: 'المنتج غير موجود' });
@@ -235,15 +265,40 @@ app.post('/api/settings', async (req, res) => {
     }
 });
 
-// رفع صورة فقط (للشعار)
+// رفع صورة فقط (للشعار وصورة الهيدر)
 app.post('/api/upload-image', upload.single('image'), async (req, res) => {
     try {
         if (!req.file) {
-            return res.status(400).json({ error: 'لم يتم رفع أي صورة' });
+            return res.status(400).json({ 
+                error: 'لم يتم رفع أي صورة. تأكد من اختيار ملف صورة صحيح.' 
+            });
         }
-        res.json({ image_path: `/images/${req.file.filename}` });
+        
+        // إرجاع المسار النسبي للصورة
+        const imagePath = `/images/${req.file.filename}`;
+        res.json({ 
+            image_path: imagePath,
+            filename: req.file.filename,
+            size: req.file.size
+        });
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        console.error('خطأ في رفع الصورة:', error);
+        
+        // معالجة أخطاء multer بشكل أفضل
+        if (error instanceof multer.MulterError) {
+            if (error.code === 'LIMIT_FILE_SIZE') {
+                return res.status(400).json({ 
+                    error: 'حجم الصورة كبير جداً. الحد الأقصى 10 ميجابايت.' 
+                });
+            }
+            return res.status(400).json({ 
+                error: 'خطأ في رفع الملف: ' + error.message 
+            });
+        }
+        
+        res.status(500).json({ 
+            error: error.message || 'حدث خطأ غير متوقع في رفع الصورة' 
+        });
     }
 });
 
