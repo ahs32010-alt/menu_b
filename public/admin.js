@@ -518,12 +518,6 @@ async function openProductModal(productId = null) {
                 document.getElementById('productCategory').value = product.category_id || '';
                 document.getElementById('productOrder').value = product.display_order || 1;
                 
-                // معالجة is_visible
-                const productVisible = document.getElementById('productVisible');
-                if (productVisible) {
-                    productVisible.checked = product.is_visible !== undefined ? (product.is_visible === 1 || product.is_visible === true) : true;
-                }
-                
                 if (product.image_path) {
                     document.getElementById('productImagePreview').innerHTML = 
                         `<img src="${product.image_path}" alt="Preview" style="width: 200px; height: 200px; border-radius: 5px; object-fit: cover; aspect-ratio: 1/1; display: block;">`;
@@ -675,10 +669,8 @@ async function saveProduct(event) {
 }
 
 // تعديل منتج
-// تعديل منتج
-async function editProduct(id) {
-    // استخدام openProductModal الذي يحتوي على كل المنطق المطلوب
-    await openProductModal(id);
+function editProduct(id) {
+    openProductModal(id);
 }
 
 // حذف منتج
@@ -1290,36 +1282,18 @@ async function importMenu(event) {
             categoryColumn = 'القسم';
         }
         
-        // جمع جميع الأقسام من المنتجات
-        const allCategories = productsData.map(p => {
-            const cat = p[categoryColumn];
-            return cat ? String(cat).trim() : null;
-        }).filter(Boolean);
-        const uniqueCategories = [...new Set(allCategories)];
-        console.log('📂 جميع الأقسام في الملف:', allCategories);
-        console.log('📂 الأقسام الفريدة:', uniqueCategories);
+        const uniqueCategories = [...new Set(productsData.map(p => p[categoryColumn]).filter(Boolean))];
+        console.log('📂 الأقسام الموجودة:', uniqueCategories);
         
-        if (uniqueCategories.length === 0) {
-            throw new Error('لم يتم العثور على أي أقسام في الملف. تأكد من وجود عمود "القسم" في ملف Excel.');
-        }
-        
-        // إنشاء الأقسام واحداً تلو الآخر مع انتظار كل واحد
         for (const catName of uniqueCategories) {
-            if (!catName) {
-                console.warn('⚠️ تخطي قسم فارغ');
-                continue;
-            }
-            
-            const catNameStr = String(catName).trim();
-            if (!catNameStr) continue;
+            if (!catName) continue;
             
             try {
-                console.log(`📤 جاري إنشاء القسم: "${catNameStr}"`);
                 const res = await fetch('/api/categories', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ 
-                        name: catNameStr, 
+                        name: String(catName), 
                         display_order: 1,
                         columns_per_row: 4
                     })
@@ -1327,46 +1301,15 @@ async function importMenu(event) {
                 
                 if (res.ok) {
                     const newCat = await res.json();
-                    console.log(`📦 Response من API:`, newCat);
-                    
-                    // التأكد من أن newCat يحتوي على id
-                    const catId = newCat.id || newCat[0]?.id || (Array.isArray(newCat) ? newCat[0]?.id : null);
-                    
-                    if (!catId) {
-                        console.error(`❌ لم يتم العثور على ID في response:`, newCat);
-                        continue;
-                    }
-                    
-                    // حفظ القسم بجميع الأشكال الممكنة
-                    categoryNameMap[catName] = catId;  // الاسم الأصلي من uniqueCategories
-                    categoryNameMap[catNameStr] = catId;  // الاسم المطهر
-                    // حفظ أيضاً بدون مسافات إضافية
-                    categoryNameMap[catName.replace(/\s+/g, ' ').trim()] = catId;
-                    console.log(`✅ تم إنشاء القسم: "${catNameStr}" (ID: ${catId})`);
-                    console.log(`   📌 محفوظ كـ: "${catName}", "${catNameStr}"`);
+                    categoryNameMap[catName] = newCat.id;
+                    console.log(`✅ تم إنشاء القسم: ${catName} (ID: ${newCat.id})`);
                 } else {
-                    const errorText = await res.text();
-                    let error;
-                    try {
-                        error = JSON.parse(errorText);
-                    } catch {
-                        error = { error: errorText };
-                    }
-                    console.error(`❌ خطأ في إنشاء القسم "${catNameStr}":`, error);
-                    console.error(`❌ Status: ${res.status} ${res.statusText}`);
-                    console.error(`❌ Response:`, errorText);
+                    const error = await res.json();
+                    console.error(`❌ خطأ في إنشاء القسم ${catName}:`, error);
                 }
             } catch (error) {
-                console.error(`❌ خطأ في إنشاء القسم "${catNameStr}":`, error);
-                console.error(`❌ Stack:`, error.stack);
+                console.error(`❌ خطأ في إنشاء القسم ${catName}:`, error);
             }
-        }
-        
-        console.log('🗺️ خريطة الأقسام النهائية:', categoryNameMap);
-        console.log('🗺️ مفاتيح الخريطة:', Object.keys(categoryNameMap));
-        
-        if (Object.keys(categoryNameMap).length === 0) {
-            throw new Error('فشل في إنشاء أي قسم. تأكد من صحة البيانات في ملف Excel.');
         }
 
         // 3. استيراد المنتجات
@@ -1386,53 +1329,15 @@ async function importMenu(event) {
         let orderColumn = orderColumns.find(col => productsData[0] && productsData[0][col]) || 'ترتيب العرض';
         
         console.log('📝 أعمدة البيانات:', { nameColumn, descColumn, priceColumn, orderColumn, categoryColumn });
-        console.log('🗺️ خريطة الأقسام:', categoryNameMap);
-        console.log('📋 أول منتج كمثال:', productsData[0]);
         
         for (let i = 0; i < productsData.length; i++) {
             const item = productsData[i];
             
-            console.log(`\n🔄 معالجة المنتج ${i + 1}:`, item);
-            
             // البحث عن ID القسم
-            const originalCategoryName = item[categoryColumn];
-            let categoryName = originalCategoryName ? String(originalCategoryName) : '';
-            const trimmedCategoryName = categoryName.trim();
-            
-            // البحث في الخريطة بعدة طرق
-            let catId = categoryNameMap[originalCategoryName] || 
-                       categoryNameMap[categoryName] ||
-                       categoryNameMap[trimmedCategoryName] ||
-                       categoryNameMap[categoryName.replace(/\s+/g, ' ').trim()];
-            
-            console.log(`📂 القسم من الملف (الأصلي): "${originalCategoryName}"`);
-            console.log(`📂 القسم بعد String: "${categoryName}"`);
-            console.log(`📂 القسم بعد trim: "${trimmedCategoryName}"`);
-            console.log(`📂 ID القسم: ${catId}`);
-            
-            if (!catId) {
-                // محاولة البحث في جميع المفاتيح
-                console.log(`📂 جميع مفاتيح الخريطة:`, Object.keys(categoryNameMap));
-                
-                // البحث بدون مسافات إضافية
-                const normalizedOriginal = originalCategoryName ? String(originalCategoryName).replace(/\s+/g, ' ').trim() : '';
-                const normalizedTrimmed = trimmedCategoryName.replace(/\s+/g, ' ').trim();
-                
-                for (const key in categoryNameMap) {
-                    const normalizedKey = key.replace(/\s+/g, ' ').trim();
-                    if (normalizedKey === normalizedOriginal || normalizedKey === normalizedTrimmed) {
-                        catId = categoryNameMap[key];
-                        console.log(`✅ تم العثور على القسم بعد تطبيع الأسماء: "${key}" → ${catId}`);
-                        break;
-                    }
-                }
-            }
-            
+            const catId = categoryNameMap[item[categoryColumn]];
             if (!catId) {
                 const catName = item[categoryColumn] || 'غير محدد';
-                console.warn(`⚠️ القسم "${catName}" غير موجود في categoryNameMap`);
-                console.warn(`⚠️ الأقسام المتاحة:`, Object.keys(categoryNameMap));
-                console.warn(`⚠️ تم تخطي المنتج: ${item[nameColumn] || 'بدون اسم'}`);
+                console.warn(`⚠️ القسم "${catName}" غير موجود، تم تخطي المنتج: ${item[nameColumn] || 'بدون اسم'}`);
                 errorCount++;
                 continue;
             }
@@ -1451,22 +1356,16 @@ async function importMenu(event) {
 
             // استخدام FormData لإرسال البيانات
             const formData = new FormData();
-            const productName = String(item[nameColumn] || 'بدون اسم');
-            const productDesc = String(item[descColumn] || '');
-            const productPrice = parseFloat(item[priceColumn]) || 0;
-            const productOrder = parseInt(item[orderColumn]) || (i + 1);
-            
             formData.append('category_id', String(catId));
-            formData.append('name', productName);
-            formData.append('description', productDesc);
-            formData.append('price', productPrice);
-            formData.append('display_order', productOrder);
+            formData.append('name', String(item[nameColumn] || 'بدون اسم'));
+            formData.append('description', String(item[descColumn] || ''));
+            formData.append('price', parseFloat(item[priceColumn]) || 0);
+            formData.append('display_order', parseInt(item[orderColumn]) || (i + 1));
             formData.append('is_visible', item['إظهار في القائمة'] !== undefined ? (item['إظهار في القائمة'] ? 1 : 0) : 1);
             
             // إضافة الخيارات
             if (productOptions.length > 0) {
                 formData.append('options', JSON.stringify(productOptions));
-                console.log(`  📦 الخيارات:`, productOptions);
             } else {
                 formData.append('options', JSON.stringify([]));
             }
@@ -1474,29 +1373,11 @@ async function importMenu(event) {
             // إذا كان هناك مسار صورة، نضيفه
             if (item['مسار الصورة']) {
                 formData.append('image_path', item['مسار الصورة']);
-                console.log(`  🖼️ مسار الصورة:`, item['مسار الصورة']);
             }
-            
-            // طباعة بيانات FormData للتحقق
-            console.log(`  📤 البيانات المرسلة:`, {
-                category_id: catId,
-                name: productName,
-                description: productDesc,
-                price: productPrice,
-                display_order: productOrder,
-                options_count: productOptions.length
-            });
 
             try {
                 const productName = item[nameColumn] || 'بدون اسم';
                 console.log(`📤 جاري إرسال المنتج ${i + 1}/${productsData.length}: ${productName}`);
-                console.log('📋 بيانات المنتج:', {
-                    category_id: catId,
-                    name: item[nameColumn],
-                    description: item[descColumn],
-                    price: item[priceColumn],
-                    display_order: item[orderColumn]
-                });
                 
                 const response = await fetch('/api/products', {
                     method: 'POST',
@@ -1508,29 +1389,12 @@ async function importMenu(event) {
                     successCount++;
                     console.log(`✅ تم حفظ المنتج: ${productName} (ID: ${savedProduct.id})`);
                 } else {
-                    let errorText = '';
-                    try {
-                        const error = await response.json();
-                        errorText = error.error || JSON.stringify(error);
-                        console.error(`❌ خطأ في استيراد المنتج ${productName}:`, error);
-                        console.error(`❌ تفاصيل الخطأ:`, {
-                            status: response.status,
-                            statusText: response.statusText,
-                            error: errorText
-                        });
-                    } catch (e) {
-                        errorText = await response.text();
-                        console.error(`❌ خطأ في استيراد المنتج ${productName}:`, {
-                            status: response.status,
-                            statusText: response.statusText,
-                            error: errorText
-                        });
-                    }
+                    const error = await response.json();
+                    console.error(`❌ خطأ في استيراد المنتج ${productName}:`, error);
                     errorCount++;
                 }
             } catch (error) {
                 console.error(`❌ خطأ في استيراد المنتج ${item[nameColumn] || 'بدون اسم'}:`, error);
-                console.error('❌ تفاصيل الخطأ:', error.message, error.stack);
                 errorCount++;
             }
         }
