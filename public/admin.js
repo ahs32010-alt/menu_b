@@ -625,35 +625,46 @@ async function saveProduct(event) {
 }
 
 // حفظ الخيارات في قاعدة البيانات
-async function saveProductOptionsToDB(productId, options) {
+async function saveProduct(event) {
+    event.preventDefault();
+    
+    // جلب البيانات من النموذج
+    const productId = document.getElementById('productId').value;
+    const imgElement = document.getElementById('currentBase64Image');
+    
+    const productData = {
+        category_id: document.getElementById('productCategory').value,
+        name: document.getElementById('productName').value.trim(),
+        description: document.getElementById('productDescription').value.trim(),
+        price: document.getElementById('productPrice').value,
+        display_order: parseInt(document.getElementById('productOrder').value) || 1,
+        is_visible: document.getElementById('productVisible').checked ? 1 : 0,
+        // نأخذ نص الصورة من المعاينة مباشرة
+        image_path: imgElement ? imgElement.src : null 
+    };
+
     try {
-        // حذف الخيارات القديمة
-        const existingOptionsResponse = await fetch(`/api/products/${productId}/options`);
-        if (existingOptionsResponse.ok) {
-            const existingOptions = await existingOptionsResponse.json();
-            for (const opt of existingOptions) {
-                await fetch(`/api/options/${opt.id}`, {
-                    method: 'DELETE'
-                });
-            }
-        }
+        const url = productId ? `/api/products/${productId}` : '/api/products';
+        const method = productId ? 'PUT' : 'POST';
         
-        // إضافة الخيارات الجديدة
-        for (const option of options) {
-            if (option.name && option.price) {
-                await fetch(`/api/products/${productId}/options`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        name: option.name,
-                        price: parseFloat(option.price),
-                        display_order: option.display_order || 0
-                    })
-                });
-            }
+        showNotification('جاري الحفظ...', 'info');
+        
+        const response = await fetch(url, {
+            method: method,
+            headers: { 'Content-Type': 'application/json' }, // نرسل بيانات JSON عادية
+            body: JSON.stringify(productData)
+        });
+        
+        if (response.ok) {
+            closeProductModal();
+            await loadProducts();
+            showNotification('تم حفظ المنتج بنجاح!', 'success');
+        } else {
+            const error = await response.json();
+            showNotification('خطأ: ' + error.error, 'error');
         }
     } catch (error) {
-        console.error('خطأ في حفظ الخيارات:', error);
+        showNotification('حدث خطأ في الاتصال بالسيرفر', 'error');
     }
 }
 
@@ -688,21 +699,27 @@ async function deleteProduct(id) {
 // ==================== إدارة الصور مع Crop ====================
 
 // دالة لتحويل الصورة إلى نص (Base64) عشان تنحفظ في الداتابيز
+// دالة معالجة الصورة وتحويلها لنص جاهز للحفظ
 function handleImageUpload(event) {
     const file = event.target.files[0];
-    const reader = new FileReader();
+    if (!file) return;
 
+    // التأكد من حجم الصورة (يفضل أقل من 1 ميجا لسرعة الداتابيز)
+    if (file.size > 1024 * 1024) {
+        alert("الصورة كبيرة جداً، يرجى اختيار صورة أقل من 1 ميجابايت");
+        event.target.value = '';
+        return;
+    }
+
+    const reader = new FileReader();
     reader.onloadend = function() {
         const base64String = reader.result;
-        // نعرض الصورة في المعاينة
-        document.getElementById('productImagePreview').src = base64String;
-        // هذا النص (base64String) هو اللي بنرسله للداتابيز بدال الرابط
-        console.log("الصورة جاهزة للحفظ كـ نص");
+        // عرض المعاينة
+        const preview = document.getElementById('productImagePreview');
+        preview.innerHTML = `<img src="${base64String}" id="currentBase64Image" style="width: 200px; height: 200px; border-radius: 5px; object-fit: cover;">`;
+        console.log("✅ الصورة تحولت لنص وجاهزة للحفظ");
     };
-
-    if (file) {
-        reader.readAsDataURL(file);
-    }
+    reader.readAsDataURL(file);
 }
 
 function initCropper(img) {

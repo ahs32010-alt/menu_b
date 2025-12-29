@@ -49,9 +49,10 @@ async function getProduct(id) {
 }
 
 async function addProduct(p) {
+    // تأكد أن الأسماء هنا تطابق الأعمدة في Neon
     const rows = await sql`
-        INSERT INTO products (name, price, image, category_id) 
-        VALUES (${p.name}, ${p.price}, ${p.image}, ${p.category_id}) 
+        INSERT INTO products (category_id, name, description, price, image_path, display_order, is_visible) 
+        VALUES (${p.category_id}, ${p.name}, ${p.description}, ${p.price}, ${p.image_path}, ${p.display_order || 1}, ${p.is_visible || 1}) 
         RETURNING *`;
     return rows[0];
 }
