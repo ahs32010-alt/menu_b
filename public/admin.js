@@ -564,63 +564,40 @@ function closeProductModal() {
     currentProductIdForOptions = null;
 }
 
-// حفظ منتج
 async function saveProduct(event) {
     event.preventDefault();
     
-    const formData = new FormData();
     const productId = document.getElementById('productId').value;
-    
-    formData.append('category_id', document.getElementById('productCategory').value);
-    formData.append('name', document.getElementById('productName').value.trim());
-    formData.append('description', document.getElementById('productDescription').value.trim());
-    formData.append('price', document.getElementById('productPrice').value);
-    formData.append('display_order', parseInt(document.getElementById('productOrder').value) || 1);
-    formData.append('is_visible', document.getElementById('productVisible').checked ? 1 : 0);
-    
-    const cropData = document.getElementById('imageCropData').value;
-    if (cropData) {
-        formData.append('image_crop_data', cropData);
-    }
-    
-    const options = getProductOptions();
-    formData.append('options', JSON.stringify(options));
-    
-    const imageFile = document.getElementById('productImage').files[0];
-    if (imageFile) {
-        formData.append('image', imageFile);
-    }
-    
+    const base64Image = document.getElementById('imageCropData').value; // النص اللي ولّدته الدالة فوق
+
+    const productData = {
+        category_id: document.getElementById('productCategory').value,
+        name: document.getElementById('productName').value.trim(),
+        description: document.getElementById('productDescription').value.trim(),
+        price: parseFloat(document.getElementById('productPrice').value) || 0,
+        display_order: parseInt(document.getElementById('productOrder').value) || 1,
+        // إذا رفع صورة جديدة نستخدمها، وإلا نترك القديمة
+        image_path: base64Image || (document.querySelector('#productImagePreview img') ? document.querySelector('#productImagePreview img').src : ''),
+        is_visible: 1
+    };
+
     try {
         const url = productId ? `/api/products/${productId}` : '/api/products';
         const method = productId ? 'PUT' : 'POST';
-        
-        showNotification('جاري الحفظ...', 'info');
-        
+
         const response = await fetch(url, {
             method: method,
-            body: formData
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(productData)
         });
-        
+
         if (response.ok) {
-            const savedProduct = await response.json();
-            currentProductIdForOptions = savedProduct.id;
-            
-            // حفظ الخيارات بعد حفظ المنتج
-            if (options.length > 0) {
-                await saveProductOptionsToDB(savedProduct.id, options);
-            }
-            
             closeProductModal();
             await loadProducts();
-            showNotification(productId ? 'تم تحديث المنتج بنجاح' : 'تم إضافة المنتج بنجاح', 'success');
-        } else {
-            const error = await response.json();
-            showNotification('حدث خطأ: ' + (error.error || 'خطأ غير معروف'), 'error');
+            showNotification('تم حفظ المنتج والصورة بنجاح!', 'success');
         }
     } catch (error) {
-        console.error('خطأ في حفظ المنتج:', error);
-        showNotification('حدث خطأ في حفظ المنتج', 'error');
+        showNotification('حدث خطأ أثناء الحفظ', 'error');
     }
 }
 
@@ -702,24 +679,30 @@ async function deleteProduct(id) {
 // دالة معالجة الصورة وتحويلها لنص جاهز للحفظ
 function handleImageUpload(event) {
     const file = event.target.files[0];
-    if (!file) return;
+    const preview = document.getElementById('productImagePreview');
+    const imageInput = document.getElementById('imageCropData'); // سنستخدم هذا الحقل المخفي لتخزين النص
 
-    // التأكد من حجم الصورة (يفضل أقل من 1 ميجا لسرعة الداتابيز)
-    if (file.size > 1024 * 1024) {
-        alert("الصورة كبيرة جداً، يرجى اختيار صورة أقل من 1 ميجابايت");
-        event.target.value = '';
-        return;
+    if (file) {
+        // التأكد من أن الحجم ليس ضخماً (أقل من 1 ميجا) لضمان سرعة الموقع
+        if (file.size > 1024 * 1024) {
+            alert("الصورة كبيرة جداً! يرجى اختيار صورة أصغر من 1 ميجابايت.");
+            event.target.value = '';
+            return;
+        }
+
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const base64String = e.target.result;
+            
+            // 1. عرض المعاينة للمستخدم
+            preview.innerHTML = `<img src="${base64String}" style="width: 100%; max-width: 200px; border-radius: 8px; border: 2px solid #841535;">`;
+            
+            // 2. تخزين النص في الحقل المخفي ليرسل مع النموذج
+            document.getElementById('imageCropData').value = base64String;
+            console.log("✅ تم تحويل الصورة وجاهزة للحفظ");
+        };
+        reader.readAsDataURL(file);
     }
-
-    const reader = new FileReader();
-    reader.onloadend = function() {
-        const base64String = reader.result;
-        // عرض المعاينة
-        const preview = document.getElementById('productImagePreview');
-        preview.innerHTML = `<img src="${base64String}" id="currentBase64Image" style="width: 200px; height: 200px; border-radius: 5px; object-fit: cover;">`;
-        console.log("✅ الصورة تحولت لنص وجاهزة للحفظ");
-    };
-    reader.readAsDataURL(file);
 }
 
 function initCropper(img) {
