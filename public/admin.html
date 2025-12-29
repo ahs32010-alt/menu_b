@@ -83,8 +83,7 @@
                 <div class="settings-form">
                     <div class="form-group">
                         <label>شعار المطعم:</label>
-                        <input type="file" id="logoUpload" accept="image/*" onchange="uploadLogo()">
-                        <div id="logoPreview" class="logo-preview"></div>
+                        <input type="file" id="productImage" accept="image/*" onchange="handleImageUpload(event)">                        <div id="logoPreview" class="logo-preview"></div>
                         <small style="color: #666; margin-top: 5px; display: block;">الحجم الموصى به: 200x150 بكسل</small>
                     </div>
 
@@ -133,8 +132,8 @@
             <span class="close" onclick="closeProductModal()">&times;</span>
             <h2 id="productModalTitle">إضافة منتج جديد</h2>
             <form id="productForm" onsubmit="saveProduct(event)">
-                <input type="hidden" id="productId">
-                
+                <input type="hidden" id="imageCropData">
+
                 <div class="form-row">
                     <div class="form-group">
                         <label>القسم *</label>
