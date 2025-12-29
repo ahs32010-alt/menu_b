@@ -126,12 +126,11 @@
         </div>
     </div>
 
-    <!-- نافذة إضافة/تعديل منتج -->
     <div id="productModal" class="modal">
         <div class="modal-content large-modal">
             <span class="close" onclick="closeProductModal()">&times;</span>
-            <h2 id="productModalTitle">إضافة منتج جديد</h2>
-            <form id="productForm" onsubmit="saveProduct(event)">
+            <h2 id="modalTitle">إضافة منتج جديد</h2> <form id="productForm" onsubmit="saveProduct(event)">
+                <input type="hidden" id="productId">
                 <input type="hidden" id="imageCropData">
 
                 <div class="form-row">
@@ -141,65 +140,35 @@
                             <option value="">اختر القسم</option>
                         </select>
                     </div>
-
-                <div class="form-row">
                     <div class="form-group">
                         <label>ترتيب العرض</label>
                         <input type="number" id="productOrder" value="1" min="1">
                     </div>
-                    <div class="form-group">
-                        <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
-                            <input type="checkbox" id="productVisible" checked style="width: 20px; height: 20px; cursor: pointer;">
-                            <span>إظهار في القائمة</span>
-                        </label>
-                    </div>
-                </div>
                 </div>
 
                 <div class="form-group">
                     <label>اسم المنتج *</label>
-                    <input type="text" id="productName" required placeholder="مثال: كريسبي دجاج">
+                    <input type="text" id="productName" required>
                 </div>
 
                 <div class="form-group">
                     <label>الوصف</label>
-                    <textarea id="productDescription" rows="3" placeholder="وصف المنتج..."></textarea>
+                    <textarea id="productDescription" rows="2"></textarea>
                 </div>
 
                 <div class="form-group">
-                    <label>السعر الأساسي (ريال) *</label>
-                    <input type="number" id="productPrice" step="0.01" min="0" required placeholder="0.00">
+                    <label>السعر الأساسي *</label>
+                    <input type="number" id="productPrice" step="0.01" required>
                 </div>
 
                 <div class="form-group">
-                    <label>صورة المنتج (مربعة)</label>
-                    <input type="file" id="productImage" accept="image/*" onchange="handleImageUpload(event)">
-                    <div id="productImagePreview" class="image-preview"></div>
-                    <div id="imageCropContainer" style="display: none; margin-top: 20px;">
-                        <div id="imageCropArea" style="max-width: 100%; max-height: 400px; margin-bottom: 15px;"></div>
-                        <div style="display: flex; gap: 10px;">
-                            <button type="button" class="btn btn-primary" onclick="cropImage()">✂️ قص الصورة (مربع)</button>
-                            <button type="button" class="btn btn-secondary" onclick="cancelCrop()">❌ إلغاء</button>
-                        </div>
-                        <input type="hidden" id="imageCropData">
-                    </div>
-                </div>
-
-                <div class="form-group">
-                    <label>خيارات المنتج (مثل: وجبة، ساندويتش)</label>
-                    <div class="options-header">
-                        <small style="color: #666;">يمكنك إضافة خيارات بسعر منفصل لكل خيار</small>
-                    </div>
-                    <div id="productOptionsList" class="options-list"></div>
-                    <button type="button" class="btn btn-secondary" onclick="addProductOption()" style="margin-top: 10px;">
-                        <span>➕</span> إضافة خيار جديد
-                    </button>
+                    <label>صورة المنتج</label>
+                    <input type="file" id="productImageInput" accept="image/*" onchange="handleImageUpload(event)">
+                    <div id="productImagePreview" class="image-preview" style="margin-top:10px;"></div>
                 </div>
 
                 <div class="form-actions">
-                    <button type="submit" class="btn btn-primary">
-                        <span>💾</span> حفظ المنتج
-                    </button>
+                    <button type="submit" class="btn btn-primary">💾 حفظ المنتج</button>
                     <button type="button" class="btn btn-secondary" onclick="closeProductModal()">إلغاء</button>
                 </div>
             </form>
