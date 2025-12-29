@@ -47,7 +47,7 @@
                     <select id="categoryFilter" onchange="filterProducts()">
                         <option value="">جميع الأقسام</option>
                     </select>
-                    <input type="text" id="searchProducts" placeholder="🔍 بحث في المنتجات..." onkeyup="searchProducts()" style="padding: 10px; border: 2px solid #ddd; border-radius: 5px; margin-right: 10px; flex: 1;">
+                    <input type="text" id="searchProducts" placeholder="🔍 بحث في المنتجات..." onkeyup="searchProducts()">
                 </div>
 
                 <div class="sorting-info" style="background: #e3f2fd; padding: 15px; border-radius: 8px; margin-bottom: 20px; border-right: 4px solid #2196F3;">
@@ -83,7 +83,8 @@
                 <div class="settings-form">
                     <div class="form-group">
                         <label>شعار المطعم:</label>
-                        <input type="file" id="productImage" accept="image/*" onchange="handleImageUpload(event)">                        <div id="logoPreview" class="logo-preview"></div>
+                        <input type="file" id="logoUpload" accept="image/*" onchange="uploadLogo()">
+                        <div id="logoPreview" class="logo-preview"></div>
                         <small style="color: #666; margin-top: 5px; display: block;">الحجم الموصى به: 200x150 بكسل</small>
                     </div>
 
@@ -126,10 +127,12 @@
         </div>
     </div>
 
+    <!-- نافذة إضافة/تعديل منتج -->
     <div id="productModal" class="modal">
         <div class="modal-content large-modal">
             <span class="close" onclick="closeProductModal()">&times;</span>
-            <h2 id="modalTitle">إضافة منتج جديد</h2> <form id="productForm" onsubmit="saveProduct(event)">
+            <h2 id="productModalTitle">إضافة منتج جديد</h2>
+            <form id="productForm" onsubmit="saveProduct(event)">
                 <input type="hidden" id="productId">
                 <input type="hidden" id="imageCropData">
 
@@ -162,9 +165,24 @@
                 </div>
 
                 <div class="form-group">
+                    <label>
+                        <input type="checkbox" id="productVisible" checked style="width: auto; margin-left: 10px;">
+                        إظهار المنتج في القائمة
+                    </label>
+                </div>
+
+                <div class="form-group">
                     <label>صورة المنتج</label>
                     <input type="file" id="productImageInput" accept="image/*" onchange="handleImageUpload(event)">
                     <div id="productImagePreview" class="image-preview" style="margin-top:10px;"></div>
+                </div>
+
+                <div class="form-group">
+                    <div class="options-header">
+                        <label>خيارات المنتج (مثل: صغير، كبير، إضافات)</label>
+                        <button type="button" class="btn btn-secondary btn-small" onclick="addProductOption()">➕ إضافة خيار</button>
+                    </div>
+                    <div id="productOptionsList" class="options-list"></div>
                 </div>
 
                 <div class="form-actions">
@@ -221,3 +239,4 @@
     <script src="/admin.js"></script>
 </body>
 </html>
+
