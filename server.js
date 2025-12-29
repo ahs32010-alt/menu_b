@@ -15,48 +15,28 @@ app.use('/images', express.static('images'));
 app.use('/uploads', express.static('uploads'));
 
 // إعداد Multer لرفع الملفات
-const imagesDir = path.join(__dirname, 'images');
-const uploadsDir = path.join(__dirname, 'uploads');
-
-// التأكد من وجود المجلدات
-const fs = require('fs');
-if (!fs.existsSync(imagesDir)) {
-    fs.mkdirSync(imagesDir, { recursive: true });
-}
-if (!fs.existsSync(uploadsDir)) {
-    fs.mkdirSync(uploadsDir, { recursive: true });
-}
-
 const storage = multer.diskStorage({
     destination: function (req, file, cb) {
-        // استخدام مسار مطلق للتأكد من العمل على السيرفر
-        cb(null, imagesDir);
+        cb(null, 'images/');
     },
     filename: function (req, file, cb) {
-        // إنشاء اسم فريد للملف
         const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-        const ext = path.extname(file.originalname).toLowerCase();
-        cb(null, uniqueSuffix + ext);
+        cb(null, uniqueSuffix + path.extname(file.originalname));
     }
 });
 
 const upload = multer({ 
     storage: storage,
-    limits: { 
-        fileSize: 10 * 1024 * 1024, // 10MB - زيادة الحجم للسماح بصور أكبر
-        files: 1
-    },
+    limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
     fileFilter: function (req, file, cb) {
-        // السماح بأنواع الصور الشائعة
-        const allowedTypes = /jpeg|jpg|png|gif|webp|bmp|svg/;
+        const allowedTypes = /jpeg|jpg|png|gif|webp/;
         const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
-        const mimetype = allowedTypes.test(file.mimetype) || 
-                        file.mimetype.startsWith('image/');
+        const mimetype = allowedTypes.test(file.mimetype);
         
         if (mimetype && extname) {
             return cb(null, true);
         } else {
-            cb(new Error('نوع الملف غير مدعوم. يرجى رفع صورة فقط (JPG, PNG, GIF, WEBP).'));
+            cb(new Error('نوع الملف غير مدعوم. يرجى رفع صورة فقط.'));
         }
     }
 });
