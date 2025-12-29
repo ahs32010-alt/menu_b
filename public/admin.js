@@ -687,51 +687,43 @@ async function deleteProduct(id) {
 
 // ==================== إدارة الصور مع Crop ====================
 
-function handleImageUpload(event) {
-    const file = event.target.files[0];
-    if (!file) {
-        document.getElementById('imageCropContainer').style.display = 'none';
-        return;
-    }
-    
-    if (!file.type.match('image.*')) {
-        showNotification('يرجى اختيار ملف صورة', 'error');
-        return;
-    }
-    
-    const reader = new FileReader();
-    reader.onload = function(e) {
-        const container = document.getElementById('imageCropContainer');
-        const cropArea = document.getElementById('imageCropArea');
-        const preview = document.getElementById('productImagePreview');
-        
-        if (cropper) {
-            cropper.destroy();
-            cropper = null;
+// دالة لرفع الصورة إلى Vercel Blob
+async function uploadToVercel(file) {
+    try {
+        // نرسل الصورة لملف الـ API اللي بننشئه في الخطوة الجاية
+        const response = await fetch(`/api/upload?filename=${file.name}`, {
+            method: 'POST',
+            body: file,
+        });
+
+        const blob = await response.json();
+        if (blob.url) {
+            return blob.url; // يعطينا رابط الصورة النهائي
         }
-        
-        const img = document.createElement('img');
-        img.id = 'cropImage';
-        img.src = e.target.result;
-        img.style.maxWidth = '100%';
-        img.style.display = 'block';
-        
-        cropArea.innerHTML = '';
-        cropArea.appendChild(img);
-        container.style.display = 'block';
-        preview.innerHTML = '';
-        
-        setTimeout(() => {
-            if (img.complete) {
-                initCropper(img);
-            } else {
-                img.onload = function() {
-                    initCropper(img);
-                };
-            }
-        }, 200);
-    };
-    reader.readAsDataURL(file);
+        throw new Error('فشل الرفع');
+    } catch (error) {
+        console.error('Error uploading:', error);
+        alert('فشل رفع الصورة، تأكد من إعدادات Vercel Blob');
+        return null;
+    }
+}
+
+// تعديل دالة حفظ المنتج (saveProduct) في ملف admin.js
+async function saveProduct(event) {
+    event.preventDefault();
+    
+    const fileInput = document.getElementById('productImage');
+    let imageUrl = document.getElementById('productImagePreview').src; // الرابط الحالي
+
+    // إذا اختار المستخدم ملف جديد من جهازه
+    if (fileInput.files.length > 0) {
+        const file = fileInput.files[0];
+        const uploadedUrl = await uploadToVercel(file);
+        if (uploadedUrl) imageUrl = uploadedUrl;
+    }
+
+    // الآن نرسل imageUrl مع باقي بيانات المنتج لقاعدة بيانات Neon
+    // ... بقية كود الحفظ الموجود عندك أصلاً ...
 }
 
 function initCropper(img) {
