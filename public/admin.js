@@ -1,88 +1,68 @@
-// دوال النوافذ (Modals)
-function openProductModal() {
-    const modal = document.getElementById('productModal');
-    if (!modal) return;
-    document.getElementById('productForm').reset();
-    document.getElementById('productId').value = '';
-    document.getElementById('imageCropData').value = '';
-    document.getElementById('productImagePreview').innerHTML = '';
-    document.getElementById('modalTitle').innerText = 'إضافة منتج جديد';
-    modal.classList.add('active');
-}
+let products = [];
+let categories = [];
 
-function closeProductModal() {
-    document.getElementById('productModal').classList.remove('active');
-}
-
-// دالة تحويل الصورة المختارة من الجهاز إلى نص (Base64)
-function handleImageUpload(event) {
-    const file = event.target.files[0];
-    const preview = document.getElementById('productImagePreview');
-    if (file) {
-        const reader = new FileReader();
-        reader.onload = function(e) {
-            const base64 = e.target.result;
-            preview.innerHTML = `<img src="${base64}" style="width:100px; height:100px; object-fit:cover; border-radius:8px;">`;
-            document.getElementById('imageCropData').value = base64;
-        };
-        reader.readAsDataURL(file);
-    }
-}
-
-// دالة التعديل
-async function editProduct(id) {
-    const product = products.find(p => p.id === id);
-    if (!product) return;
-
-    document.getElementById('productId').value = product.id;
-    document.getElementById('productName').value = product.name;
-    document.getElementById('productCategory').value = product.category_id;
-    document.getElementById('productPrice').value = product.price;
-    document.getElementById('productDescription').value = product.description || '';
-    document.getElementById('productOrder').value = product.display_order || 1;
-    
-    const preview = document.getElementById('productImagePreview');
-    preview.innerHTML = product.image_path ? `<img src="${product.image_path}" style="width:100px; height:100px; object-fit:cover;">` : '';
-    
-    document.getElementById('modalTitle').innerText = 'تعديل المنتج';
-    document.getElementById('productModal').classList.add('active');
-}
-
-// دالة الحفظ (JSON)
-async function saveProduct(event) {
-    event.preventDefault();
-    const id = document.getElementById('productId').value;
-    const productData = {
-        name: document.getElementById('productName').value,
-        category_id: document.getElementById('productCategory').value,
-        price: document.getElementById('productPrice').value,
-        description: document.getElementById('productDescription').value,
-        display_order: document.getElementById('productOrder').value,
-        image_path: document.getElementById('imageCropData').value || (document.querySelector('#productImagePreview img') ? document.querySelector('#productImagePreview img').src : '')
-    };
-
-    const url = id ? `/api/products/${id}` : '/api/products';
-    const method = id ? 'PUT' : 'POST';
-
+async function loadCategories() {
     try {
-        const res = await fetch(url, {
-            method: method,
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(productData)
-        });
-        if (res.ok) {
-            closeProductModal();
-            location.reload(); // تحديث الصفحة لرؤية النتائج
+        const res = await fetch('/api/categories');
+        categories = await res.json();
+        
+        // تعبئة قائمة الأقسام في نافذة الإضافة
+        const select = document.getElementById('productCategory');
+        if (select) {
+            select.innerHTML = '<option value="">اختر القسم</option>' + 
+                categories.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
         }
+        
+        // تعبئة فلتر الأقسام
+        const filter = document.getElementById('categoryFilter');
+        if (filter) {
+            filter.innerHTML = '<option value="">جميع الأقسام</option>' + 
+                categories.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+        }
+        
+        displayCategories(); // تحديث عرض الأقسام إذا كنت في تبويب الأقسام
     } catch (err) {
-        alert("خطأ في الاتصال بالسيرفر");
+        console.error("خطأ في تحميل الأقسام:", err);
     }
 }
 
-// تشغيل عند تحميل الصفحة
-window.onload = function() {
-    console.log("✓ تم إعادة تشغيل النظام بنجاح");
-    // هنا استدعاء دوال تحميل البيانات الأصلية لديك
-    if (typeof loadProducts === 'function') loadProducts();
-    if (typeof loadCategories === 'function') loadCategories();
-};
+async function loadProducts() {
+    try {
+        const res = await fetch('/api/products');
+        products = await res.json();
+        displayProducts(); // هذه هي الدالة التي تحول "جاري التحميل" إلى قائمة منتجات
+    } catch (err) {
+        document.getElementById('products-list').innerHTML = "خطأ في تحميل البيانات";
+    }
+}
+
+// دالة العرض الأساسية
+function displayProducts() {
+    const container = document.getElementById('products-list');
+    if (!container) return;
+    
+    if (products.length === 0) {
+        container.innerHTML = '<div class="empty-state">لا توجد منتجات حالياً.</div>';
+        return;
+    }
+
+    container.innerHTML = products.map(product => `
+        <div class="product-card">
+            <img src="${product.image_path || ''}" onerror="this.src='https://via.placeholder.com/150'" style="width:50px; height:50px; object-fit:cover;">
+            <div class="product-info">
+                <h4>${product.name}</h4>
+                <span>${product.price} ريال</span>
+            </div>
+            <div class="actions">
+                <button onclick="editProduct(${product.id})">✏️</button>
+                <button onclick="deleteProduct(${product.id})" style="color:red">🗑️</button>
+            </div>
+        </div>
+    `).join('');
+}
+
+// تشغيل التحميل فور فتح الصفحة
+document.addEventListener('DOMContentLoaded', () => {
+    loadCategories();
+    loadProducts();
+});
