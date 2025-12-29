@@ -588,6 +588,19 @@ async function saveProduct(event) {
     
     const imageFile = document.getElementById('productImage').files[0];
     if (imageFile) {
+        // التحقق من حجم الصورة (10MB كحد أقصى)
+        if (imageFile.size > 10 * 1024 * 1024) {
+            showNotification('حجم الصورة كبير جداً. الحد الأقصى 10 ميجابايت.', 'error');
+            return;
+        }
+        
+        // التحقق من نوع الملف
+        const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+        if (!allowedTypes.includes(imageFile.type)) {
+            showNotification('نوع الملف غير مدعوم. يرجى رفع صورة (JPG, PNG, GIF, WEBP).', 'error');
+            return;
+        }
+        
         formData.append('image', imageFile);
     }
     
@@ -600,6 +613,7 @@ async function saveProduct(event) {
         const response = await fetch(url, {
             method: method,
             body: formData
+            // لا تضيف Content-Type header - المتصفح سيفعل ذلك تلقائياً مع FormData
         });
         
         if (response.ok) {
@@ -615,12 +629,19 @@ async function saveProduct(event) {
             await loadProducts();
             showNotification(productId ? 'تم تحديث المنتج بنجاح' : 'تم إضافة المنتج بنجاح', 'success');
         } else {
-            const error = await response.json();
-            showNotification('حدث خطأ: ' + (error.error || 'خطأ غير معروف'), 'error');
+            let errorMessage = 'حدث خطأ غير معروف';
+            try {
+                const error = await response.json();
+                errorMessage = error.error || errorMessage;
+            } catch (e) {
+                errorMessage = `خطأ في الخادم (${response.status})`;
+            }
+            showNotification('حدث خطأ: ' + errorMessage, 'error');
+            console.error('خطأ من الخادم:', response.status, errorMessage);
         }
     } catch (error) {
         console.error('خطأ في حفظ المنتج:', error);
-        showNotification('حدث خطأ في حفظ المنتج', 'error');
+        showNotification('حدث خطأ في الاتصال بالخادم. تأكد من اتصالك بالإنترنت.', 'error');
     }
 }
 
@@ -942,12 +963,30 @@ async function uploadLogo() {
     const fileInput = document.getElementById('logoUpload');
     const file = fileInput.files[0];
     
-    if (!file) return;
+    if (!file) {
+        showNotification('يرجى اختيار ملف صورة', 'error');
+        return;
+    }
+    
+    // التحقق من حجم الصورة
+    if (file.size > 10 * 1024 * 1024) {
+        showNotification('حجم الصورة كبير جداً. الحد الأقصى 10 ميجابايت.', 'error');
+        return;
+    }
+    
+    // التحقق من نوع الملف
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+    if (!allowedTypes.includes(file.type)) {
+        showNotification('نوع الملف غير مدعوم. يرجى رفع صورة (JPG, PNG, GIF, WEBP).', 'error');
+        return;
+    }
     
     const formData = new FormData();
     formData.append('image', file);
     
     try {
+        showNotification('جاري رفع الشعار...', 'info');
+        
         const uploadResponse = await fetch('/api/upload-image', {
             method: 'POST',
             body: formData
@@ -968,14 +1007,22 @@ async function uploadLogo() {
             if (settingsResponse.ok) {
                 await loadSettings();
                 showNotification('تم رفع الشعار بنجاح!', 'success');
+            } else {
+                showNotification('حدث خطأ في حفظ الشعار', 'error');
             }
         } else {
-            const error = await uploadResponse.json();
-            showNotification('حدث خطأ: ' + (error.error || 'خطأ غير معروف'), 'error');
+            let errorMessage = 'حدث خطأ غير معروف';
+            try {
+                const error = await uploadResponse.json();
+                errorMessage = error.error || errorMessage;
+            } catch (e) {
+                errorMessage = `خطأ في الخادم (${uploadResponse.status})`;
+            }
+            showNotification('حدث خطأ: ' + errorMessage, 'error');
         }
     } catch (error) {
         console.error('خطأ في رفع الشعار:', error);
-        showNotification('حدث خطأ في رفع الشعار', 'error');
+        showNotification('حدث خطأ في الاتصال بالخادم. تأكد من اتصالك بالإنترنت.', 'error');
     }
 }
 
@@ -983,7 +1030,23 @@ async function uploadHeader() {
     const fileInput = document.getElementById('headerUpload');
     const file = fileInput.files[0];
     
-    if (!file) return;
+    if (!file) {
+        showNotification('يرجى اختيار ملف صورة', 'error');
+        return;
+    }
+    
+    // التحقق من حجم الصورة
+    if (file.size > 10 * 1024 * 1024) {
+        showNotification('حجم الصورة كبير جداً. الحد الأقصى 10 ميجابايت.', 'error');
+        return;
+    }
+    
+    // التحقق من نوع الملف
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+    if (!allowedTypes.includes(file.type)) {
+        showNotification('نوع الملف غير مدعوم. يرجى رفع صورة (JPG, PNG, GIF, WEBP).', 'error');
+        return;
+    }
     
     const formData = new FormData();
     formData.append('image', file);
@@ -1015,12 +1078,18 @@ async function uploadHeader() {
                 showNotification('حدث خطأ في حفظ صورة الهيدر', 'error');
             }
         } else {
-            const error = await uploadResponse.json();
-            showNotification('حدث خطأ: ' + (error.error || 'خطأ غير معروف'), 'error');
+            let errorMessage = 'حدث خطأ غير معروف';
+            try {
+                const error = await uploadResponse.json();
+                errorMessage = error.error || errorMessage;
+            } catch (e) {
+                errorMessage = `خطأ في الخادم (${uploadResponse.status})`;
+            }
+            showNotification('حدث خطأ: ' + errorMessage, 'error');
         }
     } catch (error) {
         console.error('خطأ في رفع صورة الهيدر:', error);
-        showNotification('حدث خطأ في رفع صورة الهيدر', 'error');
+        showNotification('حدث خطأ في الاتصال بالخادم. تأكد من اتصالك بالإنترنت.', 'error');
     }
 }
 
