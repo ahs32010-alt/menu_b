@@ -518,6 +518,12 @@ async function openProductModal(productId = null) {
                 document.getElementById('productCategory').value = product.category_id || '';
                 document.getElementById('productOrder').value = product.display_order || 1;
                 
+                // معالجة is_visible
+                const productVisible = document.getElementById('productVisible');
+                if (productVisible) {
+                    productVisible.checked = product.is_visible !== undefined ? (product.is_visible === 1 || product.is_visible === true) : true;
+                }
+                
                 if (product.image_path) {
                     document.getElementById('productImagePreview').innerHTML = 
                         `<img src="${product.image_path}" alt="Preview" style="width: 200px; height: 200px; border-radius: 5px; object-fit: cover; aspect-ratio: 1/1; display: block;">`;
@@ -669,38 +675,33 @@ async function saveProduct(event) {
 }
 
 // تعديل منتج
+// تعديل منتج
 async function editProduct(id) {
-    // 1. البحث عن المنتج في القائمة المحلية
-    const product = products.find(p => p.id === id);
-    if (!product) {
-        showNotification('عذراً، لم يتم العثور على المنتج', 'error');
+    // استخدام openProductModal الذي يحتوي على كل المنطق المطلوب
+    await openProductModal(id);
+}
+
+// حذف منتج
+async function deleteProduct(id) {
+    if (!confirm('⚠️ هل أنت متأكد من حذف هذا المنتج؟')) {
         return;
     }
-
-    // 2. تعبئة البيانات في النافذة (Modal)
-    document.getElementById('modalTitle').innerText = 'تعديل المنتج';
-    document.getElementById('productId').value = product.id;
-    document.getElementById('productName').value = product.name;
-    document.getElementById('productCategory').value = product.category_id;
-    document.getElementById('productPrice').value = product.price;
-    document.getElementById('productDescription').value = product.description || '';
-    document.getElementById('productOrder').value = product.display_order || 1;
-
-    // 3. معالجة الصورة (المعينة)
-    const preview = document.getElementById('productImagePreview');
-    const imagePath = product.image_path || product.image || ''; // دعم كل المسميات
     
-    if (imagePath) {
-        preview.innerHTML = `<img src="${imagePath}" style="width: 100%; max-width: 200px; border-radius: 8px;">`;
-        // نصفر الحقل المخفي لأننا لم نرفع صورة جديدة بعد
-        document.getElementById('imageCropData').value = ''; 
-    } else {
-        preview.innerHTML = '<p style="color: #666;">لا توجد صورة حالياً</p>';
+    try {
+        const response = await fetch(`/api/products/${id}`, {
+            method: 'DELETE'
+        });
+        
+        if (response.ok) {
+            await loadProducts();
+            showNotification('تم حذف المنتج بنجاح', 'success');
+        } else {
+            showNotification('حدث خطأ في حذف المنتج', 'error');
+        }
+    } catch (error) {
+        console.error('خطأ في حذف المنتج:', error);
+        showNotification('حدث خطأ في حذف المنتج', 'error');
     }
-
-    // 4. فتح النافذة
-    document.getElementById('productModal').classList.add('active');
-    document.body.style.overflow = 'hidden'; // منع السكرول خلف النافذة
 }
 
 // ==================== إدارة الصور مع Crop ====================
