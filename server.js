@@ -203,8 +203,23 @@ app.put('/api/products/:id', upload.single('image'), async (req, res) => {
         const product = await db.getProduct(req.params.id);
         res.json(product);
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        console.error('خطأ في تحديث المنتج:', error);
+        res.status(500).json({ error: error.message || 'حدث خطأ في تحديث المنتج' });
     }
+});
+
+// معالجة أخطاء multer
+app.use((error, req, res, next) => {
+    if (error instanceof multer.MulterError) {
+        if (error.code === 'LIMIT_FILE_SIZE') {
+            return res.status(400).json({ error: 'حجم الملف كبير جداً. الحد الأقصى 5MB' });
+        }
+        return res.status(400).json({ error: 'خطأ في رفع الملف: ' + error.message });
+    }
+    if (error) {
+        return res.status(400).json({ error: error.message || 'حدث خطأ في رفع الملف' });
+    }
+    next();
 });
 
 app.delete('/api/products/:id', async (req, res) => {

@@ -428,7 +428,25 @@ async function saveProduct(event) {
     // إضافة الصورة إذا كانت موجودة
     const imageInput = document.getElementById('productImageInput');
     if (imageInput.files.length > 0) {
-        formData.append('image', imageInput.files[0]);
+        const file = imageInput.files[0];
+        console.log('📤 إرسال صورة:', {
+            name: file.name,
+            type: file.type,
+            size: file.size,
+            isFile: file instanceof File,
+            isBlob: file instanceof Blob
+        });
+        formData.append('image', file);
+    } else if (window.croppedImageFile) {
+        // إذا كان هناك ملف مقطوع محفوظ
+        console.log('📤 إرسال صورة مقطوعة:', {
+            name: window.croppedImageFile.name,
+            type: window.croppedImageFile.type,
+            size: window.croppedImageFile.size,
+            isFile: window.croppedImageFile instanceof File,
+            isBlob: window.croppedImageFile instanceof Blob
+        });
+        formData.append('image', window.croppedImageFile);
     }
     
     // جمع الخيارات
@@ -460,12 +478,26 @@ async function saveProduct(event) {
             closeProductModal();
             showNotification(productId ? 'تم تحديث المنتج بنجاح' : 'تم إضافة المنتج بنجاح', 'success');
         } else {
-            const error = await response.json();
-            showNotification(error.error || 'حدث خطأ في حفظ المنتج', 'error');
+            let errorMessage = 'حدث خطأ في حفظ المنتج';
+            console.error('❌ خطأ في الاستجابة:', {
+                status: response.status,
+                statusText: response.statusText,
+                headers: Object.fromEntries(response.headers.entries())
+            });
+            try {
+                const error = await response.json();
+                errorMessage = error.error || error.message || errorMessage;
+                console.error('❌ خطأ من السيرفر (JSON):', error);
+            } catch (e) {
+                const errorText = await response.text();
+                errorMessage = errorText || errorMessage;
+                console.error('❌ خطأ من السيرفر (نص):', errorText);
+            }
+            showNotification(errorMessage, 'error');
         }
     } catch (error) {
         console.error('خطأ في حفظ المنتج:', error);
-        showNotification('حدث خطأ في حفظ المنتج', 'error');
+        showNotification('حدث خطأ في حفظ المنتج: ' + error.message, 'error');
     }
 }
 
@@ -600,10 +632,30 @@ function saveCroppedImage() {
     }
     
     canvas.toBlob((blob) => {
-        const file = new File([blob], 'cropped-image.png', { type: 'image/png' });
+        if (!blob) {
+            showNotification('حدث خطأ في قص الصورة', 'error');
+            return;
+        }
+        
+        // إنشاء ملف من blob بطريقة متوافقة
+        let file;
+        try {
+            file = new File([blob], 'cropped-image.png', { type: 'image/png' });
+        } catch (e) {
+            // إذا لم يكن File مدعوماً، نستخدم Blob
+            file = new Blob([blob], { type: 'image/png' });
+            file.name = 'cropped-image.png';
+            file.lastModified = Date.now();
+        }
+        
+        // إضافة الملف إلى input
         const dataTransfer = new DataTransfer();
         dataTransfer.items.add(file);
-        document.getElementById('productImageInput').files = dataTransfer.files;
+        const imageInput = document.getElementById('productImageInput');
+        imageInput.files = dataTransfer.files;
+        
+        // حفظ الملف في متغير عام للاستخدام لاحقاً
+        window.croppedImageFile = file;
         
         // عرض الصورة المقطوعة
         const preview = document.getElementById('productImagePreview');
