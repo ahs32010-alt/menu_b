@@ -687,51 +687,22 @@ async function deleteProduct(id) {
 
 // ==================== إدارة الصور مع Crop ====================
 
+// دالة لتحويل الصورة إلى نص (Base64) عشان تنحفظ في الداتابيز
 function handleImageUpload(event) {
     const file = event.target.files[0];
-    if (!file) {
-        document.getElementById('imageCropContainer').style.display = 'none';
-        return;
-    }
-    
-    if (!file.type.match('image.*')) {
-        showNotification('يرجى اختيار ملف صورة', 'error');
-        return;
-    }
-    
     const reader = new FileReader();
-    reader.onload = function(e) {
-        const container = document.getElementById('imageCropContainer');
-        const cropArea = document.getElementById('imageCropArea');
-        const preview = document.getElementById('productImagePreview');
-        
-        if (cropper) {
-            cropper.destroy();
-            cropper = null;
-        }
-        
-        const img = document.createElement('img');
-        img.id = 'cropImage';
-        img.src = e.target.result;
-        img.style.maxWidth = '100%';
-        img.style.display = 'block';
-        
-        cropArea.innerHTML = '';
-        cropArea.appendChild(img);
-        container.style.display = 'block';
-        preview.innerHTML = '';
-        
-        setTimeout(() => {
-            if (img.complete) {
-                initCropper(img);
-            } else {
-                img.onload = function() {
-                    initCropper(img);
-                };
-            }
-        }, 200);
+
+    reader.onloadend = function() {
+        const base64String = reader.result;
+        // نعرض الصورة في المعاينة
+        document.getElementById('productImagePreview').src = base64String;
+        // هذا النص (base64String) هو اللي بنرسله للداتابيز بدال الرابط
+        console.log("الصورة جاهزة للحفظ كـ نص");
     };
-    reader.readAsDataURL(file);
+
+    if (file) {
+        reader.readAsDataURL(file);
+    }
 }
 
 function initCropper(img) {

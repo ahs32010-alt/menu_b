@@ -50,8 +50,8 @@ async function getProduct(id) {
 
 async function addProduct(p) {
     const rows = await sql`
-        INSERT INTO products (category_id, name, description, price, image, display_order, is_visible) 
-        VALUES (${p.category_id}, ${p.name}, ${p.description}, ${p.price}, ${p.image_path}, ${p.display_order || 1}, ${p.is_visible || 1}) 
+        INSERT INTO products (name, price, image, category_id) 
+        VALUES (${p.name}, ${p.price}, ${p.image}, ${p.category_id}) 
         RETURNING *`;
     return rows[0];
 }
