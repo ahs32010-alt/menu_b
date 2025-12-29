@@ -702,30 +702,24 @@ async function deleteProduct(id) {
 // دالة معالجة الصورة وتحويلها لنص جاهز للحفظ
 function handleImageUpload(event) {
     const file = event.target.files[0];
-    const preview = document.getElementById('productImagePreview');
-    const imageInput = document.getElementById('imageCropData'); // سنستخدم هذا الحقل المخفي لتخزين النص
+    if (!file) return;
 
-    if (file) {
-        // التأكد من أن الحجم ليس ضخماً (أقل من 1 ميجا) لضمان سرعة الموقع
-        if (file.size > 1024 * 1024) {
-            alert("الصورة كبيرة جداً! يرجى اختيار صورة أصغر من 1 ميجابايت.");
-            event.target.value = '';
-            return;
-        }
-
-        const reader = new FileReader();
-        reader.onload = function(e) {
-            const base64String = e.target.result;
-            
-            // 1. عرض المعاينة للمستخدم
-            preview.innerHTML = `<img src="${base64String}" style="width: 100%; max-width: 200px; border-radius: 8px; border: 2px solid #841535;">`;
-            
-            // 2. تخزين النص في الحقل المخفي ليرسل مع النموذج
-            document.getElementById('imageCropData').value = base64String;
-            console.log("✅ تم تحويل الصورة وجاهزة للحفظ");
-        };
-        reader.readAsDataURL(file);
+    // التأكد من حجم الصورة (يفضل أقل من 1 ميجا لسرعة الداتابيز)
+    if (file.size > 1024 * 1024) {
+        alert("الصورة كبيرة جداً، يرجى اختيار صورة أقل من 1 ميجابايت");
+        event.target.value = '';
+        return;
     }
+
+    const reader = new FileReader();
+    reader.onloadend = function() {
+        const base64String = reader.result;
+        // عرض المعاينة
+        const preview = document.getElementById('productImagePreview');
+        preview.innerHTML = `<img src="${base64String}" id="currentBase64Image" style="width: 200px; height: 200px; border-radius: 5px; object-fit: cover;">`;
+        console.log("✅ الصورة تحولت لنص وجاهزة للحفظ");
+    };
+    reader.readAsDataURL(file);
 }
 
 function initCropper(img) {
@@ -1324,24 +1318,14 @@ async function importMenu(event) {
                 });
                 
                 if (res.ok) {
-                    let newCat = await res.json();
+                    const newCat = await res.json();
                     console.log(`📦 Response من API:`, newCat);
                     
-                    // معالجة الـ response - قد يكون array أو object
-                    if (Array.isArray(newCat)) {
-                        newCat = newCat[0] || newCat;
-                    }
-                    
                     // التأكد من أن newCat يحتوي على id
-                    let catId = null;
-                    if (newCat && typeof newCat === 'object') {
-                        catId = newCat.id || newCat.ID || newCat.Id;
-                    }
+                    const catId = newCat.id || newCat[0]?.id || (Array.isArray(newCat) ? newCat[0]?.id : null);
                     
                     if (!catId) {
                         console.error(`❌ لم يتم العثور على ID في response:`, newCat);
-                        console.error(`❌ نوع الـ response:`, typeof newCat);
-                        console.error(`❌ هل هو array:`, Array.isArray(newCat));
                         continue;
                     }
                     
