@@ -57,7 +57,10 @@ async function setSetting(key, value) {
 
 module.exports = {
     initDatabase, getCategories, getProducts, getProduct, addProduct, updateProduct, getSetting, setSetting,
-    addCategory: async ({ name }) => { return await sql`INSERT INTO categories (name) VALUES (${name}) RETURNING *`; },
+    addCategory: async ({ name, display_order = 1, columns_per_row = 4 }) => { 
+        const rows = await sql`INSERT INTO categories (name, display_order, columns_per_row) VALUES (${name}, ${display_order}, ${columns_per_row}) RETURNING *`;
+        return rows[0] || rows; // إرجاع العنصر الأول إذا كان array
+    },
     updateCategory: async (id, {name}) => { return await sql`UPDATE categories SET name=${name} WHERE id=${id} RETURNING *`; },
     deleteCategory: async (id) => { return await sql`DELETE FROM categories WHERE id=${id} RETURNING *`; },
     deleteProduct: async (id) => { return await sql`DELETE FROM products WHERE id=${id} RETURNING *`; },

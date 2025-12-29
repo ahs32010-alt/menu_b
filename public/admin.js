@@ -1319,12 +1319,22 @@ async function importMenu(event) {
                 
                 if (res.ok) {
                     const newCat = await res.json();
+                    console.log(`📦 Response من API:`, newCat);
+                    
+                    // التأكد من أن newCat يحتوي على id
+                    const catId = newCat.id || newCat[0]?.id || (Array.isArray(newCat) ? newCat[0]?.id : null);
+                    
+                    if (!catId) {
+                        console.error(`❌ لم يتم العثور على ID في response:`, newCat);
+                        continue;
+                    }
+                    
                     // حفظ القسم بجميع الأشكال الممكنة
-                    categoryNameMap[catName] = newCat.id;  // الاسم الأصلي من uniqueCategories
-                    categoryNameMap[catNameStr] = newCat.id;  // الاسم المطهر
+                    categoryNameMap[catName] = catId;  // الاسم الأصلي من uniqueCategories
+                    categoryNameMap[catNameStr] = catId;  // الاسم المطهر
                     // حفظ أيضاً بدون مسافات إضافية
-                    categoryNameMap[catName.replace(/\s+/g, ' ').trim()] = newCat.id;
-                    console.log(`✅ تم إنشاء القسم: "${catNameStr}" (ID: ${newCat.id})`);
+                    categoryNameMap[catName.replace(/\s+/g, ' ').trim()] = catId;
+                    console.log(`✅ تم إنشاء القسم: "${catNameStr}" (ID: ${catId})`);
                     console.log(`   📌 محفوظ كـ: "${catName}", "${catNameStr}"`);
                 } else {
                     const errorText = await res.text();
