@@ -1192,87 +1192,75 @@ async function importMenu(event) {
     const file = event.target.files[0];
     if (!file) return;
 
-    if (!file.name.match(/\.(xlsx|xls)$/i)) {
-        showNotification('يرجى اختيار ملف Excel صحيح (.xlsx أو .xls)', 'error');
-        return;
-    }
-
-    if (!confirm('⚠️ تحذير: هذا الإجراء سيستبدل جميع البيانات الحالية!\n\nهل أنت متأكد من المتابعة؟')) {
+    if (!confirm('⚠️ تحذير: سيتم حذف جميع القائمة الحالية واستبدالها بالملف الجديد. هل أنت متأكد؟')) {
         event.target.value = '';
         return;
     }
 
     try {
-        showNotification('جاري استيراد القائمة...', 'info');
+        showNotification('جاري المعالجة...', 'info');
         const data = await file.arrayBuffer();
         const workbook = XLSX.read(data, { type: 'array' });
 
+        // التأكد من وجود ورقة المنتجات
         const productsSheet = workbook.Sheets['المنتجات'];
-        if (!productsSheet) throw new Error('ورقة المنتجات غير موجودة');
+        if (!productsSheet) throw new Error('لم يتم العثور على ورقة باسم "المنتجات"');
         const productsData = XLSX.utils.sheet_to_json(productsSheet);
 
-        // 1. حذف البيانات القديمة (باستخدام JSON)
-        showNotification('جاري تنظيف البيانات القديمة...', 'info');
-        const allProducts = await fetch('/api/products').then(res => res.json());
-        for (const product of allProducts) {
-            await fetch(`/api/products/${product.id}`, { method: 'DELETE' });
-        }
-        const allCategories = await fetch('/api/categories').then(res => res.json());
-        for (const category of allCategories) {
-            await fetch(`/api/categories/${category.id}`, { method: 'DELETE' });
-        }
+        // 1. تنظيف البيانات القديمة
+        showNotification('جاري تنظيف القائمة الحالية...', 'info');
+        const oldProducts = await fetch('/api/products').then(res => res.json());
+        for (const p of oldProducts) await fetch(`/api/products/${p.id}`, { method: 'DELETE' });
+        
+        const oldCats = await fetch('/api/categories').then(res => res.json());
+        for (const c of oldCats) await fetch(`/api/categories/${c.id}`, { method: 'DELETE' });
 
         // 2. إنشاء الأقسام وربطها
         const categoryNameMap = {};
         const uniqueCategories = [...new Set(productsData.map(p => p['القسم']).filter(Boolean))];
         
         for (const catName of uniqueCategories) {
-            const response = await fetch('/api/categories', {
+            const res = await fetch('/api/categories', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name: catName, display_order: 0, columns_per_row: 4 })
+                body: JSON.stringify({ name: catName, display_order: 1 })
             });
-            if (response.ok) {
-                const newCat = await response.json();
+            if (res.ok) {
+                const newCat = await res.json();
                 categoryNameMap[catName] = newCat.id;
             }
         }
 
-        // 3. استيراد المنتجات (إرسال JSON بدلاً من FormData)
-        showNotification('جاري استيراد المنتجات...', 'info');
-        for (const product of productsData) {
-            const newCategoryId = categoryNameMap[product['القسم']];
-            if (!newCategoryId) continue;
+        // 3. استيراد المنتجات بناءً على عناوين ملفك
+        showNotification('جاري رفع المنتجات...', 'info');
+        for (const item of productsData) {
+            const catId = categoryNameMap[item['القسم']];
+            if (!catId) continue;
 
-            // تجهيز بيانات المنتج كـ JSON
             const productData = {
-                category_id: newCategoryId,
-                name: product['اسم المنتج'] || '',
-                description: product['وصف المنتج'] || '',
-                price: parseFloat(product['السعر الأساسي']) || 0,
-                display_order: parseInt(product['ترتيب العرض']) || 1,
-                image_path: product['مسار الصورة'] || product['الصورة'] || '', // يدعم المسميين
+                category_id: catId,
+                name: item['اسم المنتج'] || 'بدون اسم',
+                description: item['وصف المنتج'] || '',
+                price: parseFloat(item['السعر الأساسي']) || 0,
+                image_path: item['مسار الصورة'] || '', // الربط مع العمود في صورتك
+                display_order: parseInt(item['ترتيب العرض']) || 1,
                 is_visible: 1
             };
 
-            const productResponse = await fetch('/api/products', {
+            await fetch('/api/products', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' }, // إرسال كـ JSON
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(productData)
             });
-
-            if (!productResponse.ok) {
-                console.error(`فشل استيراد: ${product['اسم المنتج']}`);
-            }
         }
 
         await loadCategories();
         await loadProducts();
         showNotification('تم استيراد القائمة بنجاح!', 'success');
-        event.target.value = '';
     } catch (error) {
-        console.error('Error:', error);
+        console.error(error);
         showNotification('خطأ: ' + error.message, 'error');
+    } finally {
         event.target.value = '';
     }
 }
