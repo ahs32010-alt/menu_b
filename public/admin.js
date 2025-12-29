@@ -1318,14 +1318,24 @@ async function importMenu(event) {
                 });
                 
                 if (res.ok) {
-                    const newCat = await res.json();
+                    let newCat = await res.json();
                     console.log(`📦 Response من API:`, newCat);
                     
+                    // معالجة الـ response - قد يكون array أو object
+                    if (Array.isArray(newCat)) {
+                        newCat = newCat[0] || newCat;
+                    }
+                    
                     // التأكد من أن newCat يحتوي على id
-                    const catId = newCat.id || newCat[0]?.id || (Array.isArray(newCat) ? newCat[0]?.id : null);
+                    let catId = null;
+                    if (newCat && typeof newCat === 'object') {
+                        catId = newCat.id || newCat.ID || newCat.Id;
+                    }
                     
                     if (!catId) {
                         console.error(`❌ لم يتم العثور على ID في response:`, newCat);
+                        console.error(`❌ نوع الـ response:`, typeof newCat);
+                        console.error(`❌ هل هو array:`, Array.isArray(newCat));
                         continue;
                     }
                     

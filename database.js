@@ -58,8 +58,36 @@ async function setSetting(key, value) {
 module.exports = {
     initDatabase, getCategories, getProducts, getProduct, addProduct, updateProduct, getSetting, setSetting,
     addCategory: async ({ name, display_order = 1, columns_per_row = 4 }) => { 
-        const rows = await sql`INSERT INTO categories (name, display_order, columns_per_row) VALUES (${name}, ${display_order}, ${columns_per_row}) RETURNING *`;
-        return rows[0] || rows; // إرجاع العنصر الأول إذا كان array
+        try {
+            // محاولة إضافة مع جميع الأعمدة
+            const rows = await sql`INSERT INTO categories (name, display_order, columns_per_row) VALUES (${name}, ${display_order}, ${columns_per_row}) RETURNING *`;
+            const result = Array.isArray(rows) ? rows[0] : rows;
+            return result || rows;
+        } catch (error) {
+            // إذا فشل بسبب columns_per_row، نحاول بدونها
+            if (error.message && error.message.includes('columns_per_row')) {
+                try {
+                    const rows = await sql`INSERT INTO categories (name, display_order) VALUES (${name}, ${display_order}) RETURNING *`;
+                    const result = Array.isArray(rows) ? rows[0] : rows;
+                    return result || rows;
+                } catch (error2) {
+                    // إذا فشل بسبب display_order أيضاً، نحاول بدونها
+                    if (error2.message && error2.message.includes('display_order')) {
+                        const rows = await sql`INSERT INTO categories (name) VALUES (${name}) RETURNING *`;
+                        const result = Array.isArray(rows) ? rows[0] : rows;
+                        return result || rows;
+                    }
+                    throw error2;
+                }
+            }
+            // إذا فشل بسبب display_order، نحاول بدونها
+            if (error.message && error.message.includes('display_order')) {
+                const rows = await sql`INSERT INTO categories (name) VALUES (${name}) RETURNING *`;
+                const result = Array.isArray(rows) ? rows[0] : rows;
+                return result || rows;
+            }
+            throw error;
+        }
     },
     updateCategory: async (id, {name}) => { return await sql`UPDATE categories SET name=${name} WHERE id=${id} RETURNING *`; },
     deleteCategory: async (id) => { return await sql`DELETE FROM categories WHERE id=${id} RETURNING *`; },
