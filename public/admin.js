@@ -283,17 +283,15 @@ function displayProducts() {
 
     let filteredProducts = products;
     
-    // فلترة حسب القسم
     if (currentCategoryFilter) {
         filteredProducts = filteredProducts.filter(p => p.category_id == currentCategoryFilter);
     }
 
     if (filteredProducts.length === 0) {
-        container.innerHTML = '<div class="empty-state">لا توجد منتجات. اضغط "إضافة منتج جديد" لبدء الإضافة.</div>';
+        container.innerHTML = '<div class="empty-state">لا توجد منتجات.</div>';
         return;
     }
 
-    // ترتيب المنتجات حسب display_order
     filteredProducts.sort((a, b) => (a.display_order || 1) - (b.display_order || 1));
 
     filteredProducts.forEach((product, index) => {
@@ -301,47 +299,37 @@ function displayProducts() {
         const card = document.createElement('div');
         card.className = 'product-card sortable-item';
         card.dataset.productId = product.id;
-        card.dataset.currentOrder = product.display_order || (index + 1);
         
-        const optionsCount = product.options ? product.options.length : 0;
-        const displayOrder = product.display_order || (index + 1);
+        // استخدام صورة رمادية بسيطة إذا لم تكن هناك صورة للمنتج
+        const defaultImg = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 100 100'%3E%3Crect width='100%25' height='100%25' fill='%23eee'/%3E%3Ctext y='50%25' x='50%25' font-family='sans-serif' font-size='10' text-anchor='middle' fill='%23999'%3Eلا توجد صورة%3C/text%3E%3C/svg%3E";
         
+        const imgSrc = product.image_path || product.image || defaultImg;
+
         card.innerHTML = `
-            <div class="drag-handle" style="position: absolute; top: 5px; left: 5px; cursor: move; color: #841535; font-size: 1.2em; z-index: 10; padding: 3px 6px; background: rgba(255,255,255,0.9); border-radius: 4px; box-shadow: 0 2px 5px rgba(0,0,0,0.1);">
-                ☰
-            </div>
-            <div class="order-badge" style="position: absolute; top: 5px; right: 5px; background: #841535; color: white; padding: 3px 8px; border-radius: 4px; font-weight: 600; font-size: 0.75em;">
-                ترتيب: ${displayOrder}
-            </div>
+            <div class="drag-handle">☰</div>
+            <div class="order-badge">ترتيب: ${product.display_order || (index + 1)}</div>
             <div class="product-card-image-container">
-                <img src="${product.image_path || 'https://via.placeholder.com/300x300/841535/FFFFFF?text=' + encodeURIComponent(product.name)}" 
+                <img src="${imgSrc}" 
                      alt="${product.name}" 
                      class="product-card-image"
-                     onerror="this.src='https://via.placeholder.com/300x300/841535/FFFFFF?text=${encodeURIComponent(product.name)}'">
-                ${optionsCount > 0 ? `<span class="options-badge">${optionsCount} خيار</span>` : ''}
+                     onerror="this.src='${defaultImg}'">
+                ${product.options && product.options.length > 0 ? `<span class="options-badge">${product.options.length} خيار</span>` : ''}
             </div>
             <div class="product-card-info">
                 <h3>${product.name}</h3>
-                <p class="product-description">${product.description || 'لا يوجد وصف'}</p>
                 <div class="product-meta">
                     <span class="product-price">${product.price} ريال</span>
                     <span class="product-category">${category ? category.name : 'غير محدد'}</span>
                 </div>
                 <div class="product-card-actions">
-                    <button class="btn btn-edit" onclick="editProduct(${product.id})">
-                        <span>✏️</span> تعديل
-                    </button>
-                    <button class="btn ${product.is_visible ? 'btn-warning' : 'btn-success'}" onclick="toggleProductVisibility(${product.id})" title="${product.is_visible ? 'إخفاء من القائمة' : 'إظهار في القائمة'}">
-                        <span>${product.is_visible ? '👁️' : '👁️‍🗨️'}</span> ${product.is_visible ? 'إخفاء' : 'إظهار'}
-                    </button>
-                    <button class="btn btn-danger" onclick="deleteProduct(${product.id})">
-                        <span>🗑️</span> حذف
-                    </button>
+                    <button class="btn btn-edit" onclick="editProduct(${product.id})">✏️ تعديل</button>
+                    <button class="btn btn-danger" onclick="deleteProduct(${product.id})">🗑️ حذف</button>
                 </div>
             </div>
         `;
         container.appendChild(card);
     });
+}
 
     // تهيئة Sortable
     if (typeof Sortable !== 'undefined') {
