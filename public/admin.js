@@ -41,24 +41,41 @@ function displayProducts() {
     const container = document.getElementById('products-list');
     if (!container) return;
     
+    container.innerHTML = ''; // مسح جملة "جاري التحميل"
+
     if (products.length === 0) {
         container.innerHTML = '<div class="empty-state">لا توجد منتجات حالياً.</div>';
         return;
     }
 
-    container.innerHTML = products.map(product => `
-        <div class="product-card">
-            <img src="${product.image_path || ''}" onerror="this.src='https://via.placeholder.com/150'" style="width:50px; height:50px; object-fit:cover;">
-            <div class="product-info">
-                <h4>${product.name}</h4>
-                <span>${product.price} ريال</span>
+    // ترتيب المنتجات
+    products.sort((a, b) => (a.display_order || 1) - (b.display_order || 1));
+
+    products.forEach((product) => {
+        const category = categories.find(c => c.id === product.category_id);
+        const card = document.createElement('div');
+        card.className = 'product-card'; // الكلاس المسؤول عن التنسيق
+        
+        card.innerHTML = `
+            <div class="product-card-image-container">
+                <img src="${product.image_path || ''}" 
+                     onerror="this.src='https://via.placeholder.com/150/841535/FFFFFF?text=بدون+صورة'" 
+                     class="product-card-image">
             </div>
-            <div class="actions">
-                <button onclick="editProduct(${product.id})">✏️</button>
-                <button onclick="deleteProduct(${product.id})" style="color:red">🗑️</button>
+            <div class="product-card-info">
+                <h3>${product.name}</h3>
+                <div class="product-meta">
+                    <span class="product-price">${product.price} ريال</span>
+                    <span class="product-category">${category ? category.name : 'غير محدد'}</span>
+                </div>
+                <div class="product-card-actions">
+                    <button class="btn btn-edit" onclick="editProduct(${product.id})">✏️ تعديل</button>
+                    <button class="btn btn-danger" onclick="deleteProduct(${product.id})">🗑️ حذف</button>
+                </div>
             </div>
-        </div>
-    `).join('');
+        `;
+        container.appendChild(card);
+    });
 }
 
 // تشغيل التحميل فور فتح الصفحة
