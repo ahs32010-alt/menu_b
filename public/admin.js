@@ -669,31 +669,38 @@ async function saveProduct(event) {
 }
 
 // تعديل منتج
-function editProduct(id) {
-    openProductModal(id);
-}
-
-// حذف منتج
-async function deleteProduct(id) {
-    if (!confirm('⚠️ هل أنت متأكد من حذف هذا المنتج؟')) {
+async function editProduct(id) {
+    // 1. البحث عن المنتج في القائمة المحلية
+    const product = products.find(p => p.id === id);
+    if (!product) {
+        showNotification('عذراً، لم يتم العثور على المنتج', 'error');
         return;
     }
+
+    // 2. تعبئة البيانات في النافذة (Modal)
+    document.getElementById('modalTitle').innerText = 'تعديل المنتج';
+    document.getElementById('productId').value = product.id;
+    document.getElementById('productName').value = product.name;
+    document.getElementById('productCategory').value = product.category_id;
+    document.getElementById('productPrice').value = product.price;
+    document.getElementById('productDescription').value = product.description || '';
+    document.getElementById('productOrder').value = product.display_order || 1;
+
+    // 3. معالجة الصورة (المعينة)
+    const preview = document.getElementById('productImagePreview');
+    const imagePath = product.image_path || product.image || ''; // دعم كل المسميات
     
-    try {
-        const response = await fetch(`/api/products/${id}`, {
-            method: 'DELETE'
-        });
-        
-        if (response.ok) {
-            await loadProducts();
-            showNotification('تم حذف المنتج بنجاح', 'success');
-        } else {
-            showNotification('حدث خطأ في حذف المنتج', 'error');
-        }
-    } catch (error) {
-        console.error('خطأ في حذف المنتج:', error);
-        showNotification('حدث خطأ في حذف المنتج', 'error');
+    if (imagePath) {
+        preview.innerHTML = `<img src="${imagePath}" style="width: 100%; max-width: 200px; border-radius: 8px;">`;
+        // نصفر الحقل المخفي لأننا لم نرفع صورة جديدة بعد
+        document.getElementById('imageCropData').value = ''; 
+    } else {
+        preview.innerHTML = '<p style="color: #666;">لا توجد صورة حالياً</p>';
     }
+
+    // 4. فتح النافذة
+    document.getElementById('productModal').classList.add('active');
+    document.body.style.overflow = 'hidden'; // منع السكرول خلف النافذة
 }
 
 // ==================== إدارة الصور مع Crop ====================
