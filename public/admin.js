@@ -1189,8 +1189,14 @@ async function exportMenu() {
 }
 
 async function importMenu(event) {
+    console.log('🔵 بدء استيراد القائمة...');
     const file = event.target.files[0];
-    if (!file) return;
+    if (!file) {
+        console.log('❌ لم يتم اختيار ملف');
+        return;
+    }
+
+    console.log('📄 اسم الملف:', file.name);
 
     if (!file.name.match(/\.(xlsx|xls)$/i)) {
         showNotification('يرجى اختيار ملف Excel صحيح (.xlsx أو .xls)', 'error');
@@ -1205,15 +1211,40 @@ async function importMenu(event) {
 
     try {
         showNotification('جاري قراءة الملف...', 'info');
+        console.log('📖 جاري قراءة الملف...');
         const data = await file.arrayBuffer();
         const workbook = XLSX.read(data, { type: 'array' });
+        
+        console.log('📊 أوراق الملف:', workbook.SheetNames);
 
-        // التأكد من وجود ورقة المنتجات
-        const productsSheet = workbook.Sheets['المنتجات'];
+        // البحث عن ورقة المنتجات (قد تكون بأسماء مختلفة)
+        let productsSheet = workbook.Sheets['المنتجات'];
         if (!productsSheet) {
-            throw new Error('لم يتم العثور على ورقة باسم "المنتجات" في الملف');
+            // البحث في جميع الأوراق
+            for (const sheetName of workbook.SheetNames) {
+                if (sheetName.includes('منتج') || sheetName.includes('Product')) {
+                    productsSheet = workbook.Sheets[sheetName];
+                    console.log('✅ تم العثور على ورقة:', sheetName);
+                    break;
+                }
+            }
         }
+        
+        if (!productsSheet) {
+            // إذا لم نجد، نستخدم الورقة الأولى
+            if (workbook.SheetNames.length > 0) {
+                productsSheet = workbook.Sheets[workbook.SheetNames[0]];
+                console.log('⚠️ استخدام الورقة الأولى:', workbook.SheetNames[0]);
+            }
+        }
+        
+        if (!productsSheet) {
+            throw new Error('لم يتم العثور على أي ورقة في الملف');
+        }
+        
         const productsData = XLSX.utils.sheet_to_json(productsSheet);
+        console.log('📦 عدد المنتجات في الملف:', productsData.length);
+        console.log('📋 عينة من البيانات:', productsData.slice(0, 2));
         
         if (!productsData || productsData.length === 0) {
             throw new Error('لا توجد منتجات في الملف');
@@ -1234,26 +1265,50 @@ async function importMenu(event) {
         // 2. إنشاء الأقسام وربطها
         showNotification('جاري إنشاء الأقسام...', 'info');
         const categoryNameMap = {};
-        const uniqueCategories = [...new Set(productsData.map(p => p['القسم']).filter(Boolean))];
+        
+        // محاولة قراءة الأعمدة المختلفة للقسم
+        const categoryColumnNames = ['القسم', 'اسم القسم', 'Category', 'category', 'قسم'];
+        let categoryColumn = null;
+        for (const colName of categoryColumnNames) {
+            if (productsData[0] && productsData[0][colName]) {
+                categoryColumn = colName;
+                console.log('✅ تم العثور على عمود القسم:', colName);
+                break;
+            }
+        }
+        
+        if (!categoryColumn) {
+            console.warn('⚠️ لم يتم العثور على عمود القسم، سيتم استخدام "قسم افتراضي"');
+            categoryColumn = 'القسم';
+        }
+        
+        const uniqueCategories = [...new Set(productsData.map(p => p[categoryColumn]).filter(Boolean))];
+        console.log('📂 الأقسام الموجودة:', uniqueCategories);
         
         for (const catName of uniqueCategories) {
             if (!catName) continue;
             
-            const res = await fetch('/api/categories', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ 
-                    name: catName, 
-                    display_order: 1,
-                    columns_per_row: 4
-                })
-            });
-            
-            if (res.ok) {
-                const newCat = await res.json();
-                categoryNameMap[catName] = newCat.id;
-            } else {
-                console.error(`خطأ في إنشاء القسم: ${catName}`);
+            try {
+                const res = await fetch('/api/categories', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        name: String(catName), 
+                        display_order: 1,
+                        columns_per_row: 4
+                    })
+                });
+                
+                if (res.ok) {
+                    const newCat = await res.json();
+                    categoryNameMap[catName] = newCat.id;
+                    console.log(`✅ تم إنشاء القسم: ${catName} (ID: ${newCat.id})`);
+                } else {
+                    const error = await res.json();
+                    console.error(`❌ خطأ في إنشاء القسم ${catName}:`, error);
+                }
+            } catch (error) {
+                console.error(`❌ خطأ في إنشاء القسم ${catName}:`, error);
             }
         }
 
@@ -1262,13 +1317,27 @@ async function importMenu(event) {
         let successCount = 0;
         let errorCount = 0;
         
+        // محاولة قراءة أسماء الأعمدة المختلفة
+        const nameColumns = ['اسم المنتج', 'الاسم', 'Name', 'name', 'اسم'];
+        const descColumns = ['وصف المنتج', 'الوصف', 'Description', 'description', 'وصف'];
+        const priceColumns = ['السعر الأساسي', 'السعر', 'Price', 'price', 'سعر'];
+        const orderColumns = ['ترتيب العرض', 'الترتيب', 'Order', 'order', 'ترتيب'];
+        
+        let nameColumn = nameColumns.find(col => productsData[0] && productsData[0][col]) || 'اسم المنتج';
+        let descColumn = descColumns.find(col => productsData[0] && productsData[0][col]) || 'وصف المنتج';
+        let priceColumn = priceColumns.find(col => productsData[0] && productsData[0][col]) || 'السعر الأساسي';
+        let orderColumn = orderColumns.find(col => productsData[0] && productsData[0][col]) || 'ترتيب العرض';
+        
+        console.log('📝 أعمدة البيانات:', { nameColumn, descColumn, priceColumn, orderColumn, categoryColumn });
+        
         for (let i = 0; i < productsData.length; i++) {
             const item = productsData[i];
             
             // البحث عن ID القسم
-            const catId = categoryNameMap[item['القسم']];
+            const catId = categoryNameMap[item[categoryColumn]];
             if (!catId) {
-                console.warn(`القسم "${item['القسم']}" غير موجود، تم تخطي المنتج: ${item['اسم المنتج'] || 'بدون اسم'}`);
+                const catName = item[categoryColumn] || 'غير محدد';
+                console.warn(`⚠️ القسم "${catName}" غير موجود، تم تخطي المنتج: ${item[nameColumn] || 'بدون اسم'}`);
                 errorCount++;
                 continue;
             }
@@ -1287,11 +1356,11 @@ async function importMenu(event) {
 
             // استخدام FormData لإرسال البيانات
             const formData = new FormData();
-            formData.append('category_id', catId);
-            formData.append('name', item['اسم المنتج'] || 'بدون اسم');
-            formData.append('description', item['وصف المنتج'] || '');
-            formData.append('price', parseFloat(item['السعر الأساسي']) || 0);
-            formData.append('display_order', parseInt(item['ترتيب العرض']) || (i + 1));
+            formData.append('category_id', String(catId));
+            formData.append('name', String(item[nameColumn] || 'بدون اسم'));
+            formData.append('description', String(item[descColumn] || ''));
+            formData.append('price', parseFloat(item[priceColumn]) || 0);
+            formData.append('display_order', parseInt(item[orderColumn]) || (i + 1));
             formData.append('is_visible', item['إظهار في القائمة'] !== undefined ? (item['إظهار في القائمة'] ? 1 : 0) : 1);
             
             // إضافة الخيارات
@@ -1307,23 +1376,30 @@ async function importMenu(event) {
             }
 
             try {
+                const productName = item[nameColumn] || 'بدون اسم';
+                console.log(`📤 جاري إرسال المنتج ${i + 1}/${productsData.length}: ${productName}`);
+                
                 const response = await fetch('/api/products', {
                     method: 'POST',
                     body: formData
                 });
 
                 if (response.ok) {
+                    const savedProduct = await response.json();
                     successCount++;
+                    console.log(`✅ تم حفظ المنتج: ${productName} (ID: ${savedProduct.id})`);
                 } else {
                     const error = await response.json();
-                    console.error(`خطأ في استيراد المنتج ${item['اسم المنتج']}:`, error);
+                    console.error(`❌ خطأ في استيراد المنتج ${productName}:`, error);
                     errorCount++;
                 }
             } catch (error) {
-                console.error(`خطأ في استيراد المنتج ${item['اسم المنتج']}:`, error);
+                console.error(`❌ خطأ في استيراد المنتج ${item[nameColumn] || 'بدون اسم'}:`, error);
                 errorCount++;
             }
         }
+        
+        console.log(`📊 النتيجة: ${successCount} نجح، ${errorCount} فشل`);
 
         // إعادة تحميل البيانات
         await loadCategories();
