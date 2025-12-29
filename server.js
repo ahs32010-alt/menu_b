@@ -1,6 +1,5 @@
 const express = require('express');
 const path = require('path');
-const fs = require('fs');
 const multer = require('multer');
 const bodyParser = require('body-parser');
 const db = require('./database');
@@ -16,49 +15,28 @@ app.use('/images', express.static('images'));
 app.use('/uploads', express.static('uploads'));
 
 // إعداد Multer لرفع الملفات
-const imagesDir = path.join(__dirname, 'images');
-const uploadsDir = path.join(__dirname, 'uploads');
-
-// التأكد من وجود المجلدات
-if (!fs.existsSync(imagesDir)) {
-    fs.mkdirSync(imagesDir, { recursive: true });
-    console.log('✓ تم إنشاء مجلد الصور:', imagesDir);
-}
-if (!fs.existsSync(uploadsDir)) {
-    fs.mkdirSync(uploadsDir, { recursive: true });
-    console.log('✓ تم إنشاء مجلد الرفع:', uploadsDir);
-}
-
 const storage = multer.diskStorage({
     destination: function (req, file, cb) {
-        // استخدام مسار مطلق للتأكد من العمل على السيرفر
-        cb(null, imagesDir);
+        cb(null, 'images/');
     },
     filename: function (req, file, cb) {
-        // إنشاء اسم فريد للملف
         const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-        const ext = path.extname(file.originalname).toLowerCase();
-        cb(null, uniqueSuffix + ext);
+        cb(null, uniqueSuffix + path.extname(file.originalname));
     }
 });
 
 const upload = multer({ 
     storage: storage,
-    limits: { 
-        fileSize: 10 * 1024 * 1024, // 10MB - زيادة الحجم للسماح بصور أكبر
-        files: 1
-    },
+    limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
     fileFilter: function (req, file, cb) {
-        // السماح بأنواع الصور الشائعة
-        const allowedTypes = /jpeg|jpg|png|gif|webp|bmp|svg/;
+        const allowedTypes = /jpeg|jpg|png|gif|webp/;
         const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
-        const mimetype = allowedTypes.test(file.mimetype) || 
-                        file.mimetype.startsWith('image/');
+        const mimetype = allowedTypes.test(file.mimetype);
         
         if (mimetype && extname) {
             return cb(null, true);
         } else {
-            cb(new Error('نوع الملف غير مدعوم. يرجى رفع صورة فقط (JPG, PNG, GIF, WEBP).'));
+            cb(new Error('نوع الملف غير مدعوم. يرجى رفع صورة فقط.'));
         }
     }
 });
@@ -124,11 +102,6 @@ app.get('/api/products/:id', async (req, res) => {
 
 app.post('/api/products', upload.single('image'), async (req, res) => {
     try {
-        // معالجة أخطاء multer
-        if (req.fileValidationError) {
-            return res.status(400).json({ error: req.fileValidationError });
-        }
-        
         const productData = {
             category_id: req.body.category_id,
             name: req.body.name,
@@ -178,11 +151,6 @@ app.post('/api/products', upload.single('image'), async (req, res) => {
 
 app.put('/api/products/:id', upload.single('image'), async (req, res) => {
     try {
-        // معالجة أخطاء multer
-        if (req.fileValidationError) {
-            return res.status(400).json({ error: req.fileValidationError });
-        }
-        
         const existingProduct = await db.getProduct(req.params.id);
         if (!existingProduct) {
             return res.status(404).json({ error: 'المنتج غير موجود' });
@@ -267,40 +235,15 @@ app.post('/api/settings', async (req, res) => {
     }
 });
 
-// رفع صورة فقط (للشعار وصورة الهيدر)
+// رفع صورة فقط (للشعار)
 app.post('/api/upload-image', upload.single('image'), async (req, res) => {
     try {
         if (!req.file) {
-            return res.status(400).json({ 
-                error: 'لم يتم رفع أي صورة. تأكد من اختيار ملف صورة صحيح.' 
-            });
+            return res.status(400).json({ error: 'لم يتم رفع أي صورة' });
         }
-        
-        // إرجاع المسار النسبي للصورة
-        const imagePath = `/images/${req.file.filename}`;
-        res.json({ 
-            image_path: imagePath,
-            filename: req.file.filename,
-            size: req.file.size
-        });
+        res.json({ image_path: `/images/${req.file.filename}` });
     } catch (error) {
-        console.error('خطأ في رفع الصورة:', error);
-        
-        // معالجة أخطاء multer بشكل أفضل
-        if (error instanceof multer.MulterError) {
-            if (error.code === 'LIMIT_FILE_SIZE') {
-                return res.status(400).json({ 
-                    error: 'حجم الصورة كبير جداً. الحد الأقصى 10 ميجابايت.' 
-                });
-            }
-            return res.status(400).json({ 
-                error: 'خطأ في رفع الملف: ' + error.message 
-            });
-        }
-        
-        res.status(500).json({ 
-            error: error.message || 'حدث خطأ غير متوقع في رفع الصورة' 
-        });
+        res.status(500).json({ error: error.message });
     }
 });
 
