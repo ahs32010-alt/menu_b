@@ -1,5 +1,6 @@
 const express = require('express');
 const path = require('path');
+const fs = require('fs');
 const multer = require('multer');
 const bodyParser = require('body-parser');
 const db = require('./database');
@@ -7,20 +8,59 @@ const db = require('./database');
 const app = express();
 const PORT = 3000;
 
+// إنشاء مجلد الصور إذا لم يكن موجوداً
+const imagesDir = path.join(__dirname, 'images');
+if (!fs.existsSync(imagesDir)) {
+    fs.mkdirSync(imagesDir, { recursive: true });
+    console.log('✓ تم إنشاء مجلد images/');
+}
+
 // Middleware
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.static('public'));
 app.use('/images', express.static('images'));
 
-// إعداد Multer لرفع الملفات
+// دالة لتنظيف اسم الملف (إزالة المسافات والأحرف الخاصة)
+function sanitizeFileName(name) {
+    return name
+        .replace(/[^a-zA-Z0-9\u0600-\u06FF\s]/g, '') // إزالة الأحرف الخاصة
+        .replace(/\s+/g, '_') // استبدال المسافات بشرطة سفلية
+        .trim();
+}
+
+// دالة للحصول على اسم ملف فريد
+function getUniqueFileName(productName, ext, imagesDir) {
+    const baseName = sanitizeFileName(productName);
+    let fileName = baseName + ext;
+    let counter = 1;
+    
+    // التأكد من عدم التكرار
+    while (fs.existsSync(path.join(imagesDir, fileName))) {
+        fileName = `${baseName}_${counter}${ext}`;
+        counter++;
+    }
+    
+    return fileName;
+}
+
+// إعداد Multer لرفع الملفات - حفظ باسم المنتج
 const storage = multer.diskStorage({
     destination: function (req, file, cb) {
-        cb(null, 'images/');
+        // التأكد من وجود المجلد
+        if (!fs.existsSync(imagesDir)) {
+            fs.mkdirSync(imagesDir, { recursive: true });
+        }
+        cb(null, imagesDir);
     },
     filename: function (req, file, cb) {
-        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-        cb(null, uniqueSuffix + path.extname(file.originalname));
+        // الحصول على اسم المنتج من body
+        const productName = req.body.name || 'product';
+        const ext = path.extname(file.originalname).toLowerCase();
+        
+        // إنشاء اسم ملف فريد بناءً على اسم المنتج
+        const fileName = getUniqueFileName(productName, ext, imagesDir);
+        cb(null, fileName);
     }
 });
 
@@ -154,12 +194,32 @@ app.put('/api/products/:id', upload.single('image'), async (req, res) => {
             return res.status(404).json({ error: 'المنتج غير موجود' });
         }
 
+        let imagePath = existingProduct.image_path;
+        
+        // إذا تم رفع صورة جديدة، حذف الصورة القديمة إن وجدت
+        if (req.file) {
+            // حذف الصورة القديمة إذا كانت موجودة
+            if (existingProduct.image_path) {
+                const oldImagePath = path.join(__dirname, existingProduct.image_path.replace('/images/', ''));
+                if (fs.existsSync(oldImagePath)) {
+                    try {
+                        fs.unlinkSync(oldImagePath);
+                    } catch (err) {
+                        console.error('خطأ في حذف الصورة القديمة:', err);
+                    }
+                }
+            }
+            imagePath = `/images/${req.file.filename}`;
+        } else if (req.body.image_path) {
+            imagePath = req.body.image_path;
+        }
+
         const productData = {
             category_id: req.body.category_id,
             name: req.body.name,
             description: req.body.description,
             price: parseFloat(req.body.price),
-            image_path: req.file ? `/images/${req.file.filename}` : (req.body.image_path || existingProduct.image_path),
+            image_path: imagePath,
             display_order: parseInt(req.body.display_order) || 1,
             is_visible: req.body.is_visible !== undefined ? parseInt(req.body.is_visible) : (existingProduct.is_visible !== undefined ? existingProduct.is_visible : 1)
         };
@@ -221,6 +281,22 @@ app.use((error, req, res, next) => {
 
 app.delete('/api/products/:id', async (req, res) => {
     try {
+        // الحصول على المنتج قبل الحذف لحذف صورته
+        const product = await db.getProduct(req.params.id);
+        
+        // حذف الصورة إذا كانت موجودة
+        if (product && product.image_path) {
+            const imagePath = path.join(__dirname, product.image_path.replace('/images/', ''));
+            if (fs.existsSync(imagePath)) {
+                try {
+                    fs.unlinkSync(imagePath);
+                    console.log(`✓ تم حذف الصورة: ${product.image_path}`);
+                } catch (err) {
+                    console.error('خطأ في حذف الصورة:', err);
+                }
+            }
+        }
+        
         const result = await db.deleteProduct(req.params.id);
         res.json(result);
     } catch (error) {
@@ -247,8 +323,37 @@ app.post('/api/settings', async (req, res) => {
     }
 });
 
-// رفع صورة فقط (للشعار)
-app.post('/api/upload-image', upload.single('image'), async (req, res) => {
+// رفع صورة فقط (للشعار والهيدر) - استخدام اسم عشوائي
+const logoStorage = multer.diskStorage({
+    destination: function (req, file, cb) {
+        if (!fs.existsSync(imagesDir)) {
+            fs.mkdirSync(imagesDir, { recursive: true });
+        }
+        cb(null, imagesDir);
+    },
+    filename: function (req, file, cb) {
+        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+        cb(null, uniqueSuffix + path.extname(file.originalname));
+    }
+});
+
+const logoUpload = multer({ 
+    storage: logoStorage,
+    limits: { fileSize: 5 * 1024 * 1024 },
+    fileFilter: function (req, file, cb) {
+        const allowedTypes = /jpeg|jpg|png|gif|webp/;
+        const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
+        const mimetype = allowedTypes.test(file.mimetype);
+        
+        if (mimetype && extname) {
+            return cb(null, true);
+        } else {
+            cb(new Error('نوع الملف غير مدعوم. يرجى رفع صورة فقط.'));
+        }
+    }
+});
+
+app.post('/api/upload-image', logoUpload.single('image'), async (req, res) => {
     try {
         if (!req.file) {
             return res.status(400).json({ error: 'لم يتم رفع أي صورة' });
