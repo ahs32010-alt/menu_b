@@ -12,7 +12,6 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.static('public'));
 app.use('/images', express.static('images'));
-app.use('/uploads', express.static('uploads'));
 
 // إعداد Multer لرفع الملفات
 const storage = multer.diskStorage({
@@ -108,7 +107,6 @@ app.post('/api/products', upload.single('image'), async (req, res) => {
             description: req.body.description,
             price: parseFloat(req.body.price),
             image_path: req.file ? `/images/${req.file.filename}` : null,
-            image_crop_data: req.body.image_crop_data || null,
             display_order: parseInt(req.body.display_order) || 1,
             is_visible: req.body.is_visible !== undefined ? parseInt(req.body.is_visible) : 1
         };
@@ -162,7 +160,6 @@ app.put('/api/products/:id', upload.single('image'), async (req, res) => {
             description: req.body.description,
             price: parseFloat(req.body.price),
             image_path: req.file ? `/images/${req.file.filename}` : (req.body.image_path || existingProduct.image_path),
-            image_crop_data: req.body.image_crop_data !== undefined ? req.body.image_crop_data : existingProduct.image_crop_data,
             display_order: parseInt(req.body.display_order) || 1,
             is_visible: req.body.is_visible !== undefined ? parseInt(req.body.is_visible) : (existingProduct.is_visible !== undefined ? existingProduct.is_visible : 1)
         };
@@ -272,36 +269,6 @@ app.get('/api/products/:id/options', async (req, res) => {
     }
 });
 
-app.post('/api/products/:id/options', async (req, res) => {
-    try {
-        const option = await db.addProductOption({
-            product_id: parseInt(req.params.id),
-            ...req.body
-        });
-        res.json(option);
-    } catch (error) {
-        res.status(500).json({ error: error.message });
-    }
-});
-
-app.put('/api/options/:id', async (req, res) => {
-    try {
-        const option = await db.updateProductOption(req.params.id, req.body);
-        res.json(option);
-    } catch (error) {
-        res.status(500).json({ error: error.message });
-    }
-});
-
-app.delete('/api/options/:id', async (req, res) => {
-    try {
-        const result = await db.deleteProductOption(req.params.id);
-        res.json(result);
-    } catch (error) {
-        res.status(500).json({ error: error.message });
-    }
-});
-
 // الصفحة الرئيسية
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
@@ -313,20 +280,8 @@ app.get('/admin', (req, res) => {
 });
 
 // بدء الخادم
-async function startServer() {
-    try {
-        //await db.initDatabase();
-        console.log('✓ تم الاتصال بقاعدة البيانات بنجاح');
-        
-        app.listen(PORT, () => {
-            console.log(`✓ الخادم يعمل على http://localhost:${PORT}`);
-            console.log(`✓ صفحة الأدمن: http://localhost:${PORT}/admin`);
-        });
-    } catch (error) {
-        console.error('✗ خطأ في بدء الخادم:', error);
-        process.exit(1);
-    }
-}
-
-startServer();
+app.listen(PORT, () => {
+    console.log(`✓ الخادم يعمل على http://localhost:${PORT}`);
+    console.log(`✓ صفحة الأدمن: http://localhost:${PORT}/admin`);
+});
 
