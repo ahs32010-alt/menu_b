@@ -1,11 +1,19 @@
 const express = require('express');
 const path = require('path');
+const fs = require('fs');
 const multer = require('multer');
 const bodyParser = require('body-parser');
 const db = require('./database');
 
 const app = express();
 const PORT = 3000;
+
+// إنشاء مجلد الصور إذا لم يكن موجوداً
+const imagesDir = path.join(__dirname, 'images');
+if (!fs.existsSync(imagesDir)) {
+    fs.mkdirSync(imagesDir, { recursive: true });
+    console.log('✓ تم إنشاء مجلد images/');
+}
 
 // Middleware
 app.use(bodyParser.json());
@@ -14,14 +22,21 @@ app.use(express.static('public'));
 app.use('/images', express.static('images'));
 app.use('/uploads', express.static('uploads'));
 
-// إعداد Multer لرفع الملفات
+// إعداد Multer لرفع الملفات - حفظ في مجلد محلي داخل المشروع
 const storage = multer.diskStorage({
     destination: function (req, file, cb) {
-        cb(null, 'images/');
+        // التأكد من وجود المجلد
+        if (!fs.existsSync(imagesDir)) {
+            fs.mkdirSync(imagesDir, { recursive: true });
+        }
+        // حفظ الصور في مجلد images/ داخل المشروع
+        cb(null, imagesDir);
     },
     filename: function (req, file, cb) {
+        // إنشاء اسم فريد للصورة
         const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-        cb(null, uniqueSuffix + path.extname(file.originalname));
+        const ext = path.extname(file.originalname).toLowerCase();
+        cb(null, uniqueSuffix + ext);
     }
 });
 
@@ -102,12 +117,19 @@ app.get('/api/products/:id', async (req, res) => {
 
 app.post('/api/products', upload.single('image'), async (req, res) => {
     try {
+        // حفظ الصورة في مجلد محلي داخل المشروع
+        let imagePath = null;
+        if (req.file) {
+            imagePath = `/images/${req.file.filename}`;
+            console.log(`📸 تم حفظ الصورة محلياً في: ${path.join(imagesDir, req.file.filename)}`);
+        }
+        
         const productData = {
             category_id: req.body.category_id,
             name: req.body.name,
             description: req.body.description,
             price: parseFloat(req.body.price),
-            image_path: req.file ? `/images/${req.file.filename}` : null,
+            image_path: imagePath,
             image_crop_data: req.body.image_crop_data || null,
             display_order: parseInt(req.body.display_order) || 1,
             is_visible: req.body.is_visible !== undefined ? parseInt(req.body.is_visible) : 1
@@ -156,12 +178,21 @@ app.put('/api/products/:id', upload.single('image'), async (req, res) => {
             return res.status(404).json({ error: 'المنتج غير موجود' });
         }
 
+        // حفظ الصورة في مجلد محلي داخل المشروع
+        let imagePath = existingProduct.image_path;
+        if (req.file) {
+            imagePath = `/images/${req.file.filename}`;
+            console.log(`📸 تم حفظ الصورة محلياً في: ${path.join(imagesDir, req.file.filename)}`);
+        } else if (req.body.image_path) {
+            imagePath = req.body.image_path;
+        }
+
         const productData = {
             category_id: req.body.category_id,
             name: req.body.name,
             description: req.body.description,
             price: parseFloat(req.body.price),
-            image_path: req.file ? `/images/${req.file.filename}` : (req.body.image_path || existingProduct.image_path),
+            image_path: imagePath,
             image_crop_data: req.body.image_crop_data !== undefined ? req.body.image_crop_data : existingProduct.image_crop_data,
             display_order: parseInt(req.body.display_order) || 1,
             is_visible: req.body.is_visible !== undefined ? parseInt(req.body.is_visible) : (existingProduct.is_visible !== undefined ? existingProduct.is_visible : 1)
@@ -250,13 +281,15 @@ app.post('/api/settings', async (req, res) => {
     }
 });
 
-// رفع صورة فقط (للشعار)
+// رفع صورة فقط (للشعار) - حفظ في مجلد محلي
 app.post('/api/upload-image', upload.single('image'), async (req, res) => {
     try {
         if (!req.file) {
             return res.status(400).json({ error: 'لم يتم رفع أي صورة' });
         }
-        res.json({ image_path: `/images/${req.file.filename}` });
+        const imagePath = `/images/${req.file.filename}`;
+        console.log(`📸 تم حفظ الصورة محلياً في: ${path.join(imagesDir, req.file.filename)}`);
+        res.json({ image_path: imagePath });
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
